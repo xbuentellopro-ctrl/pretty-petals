@@ -11,10 +11,9 @@ exports.handler = async function(event, context) {
   }
 
   const { amount, customer_name, customer_email, order_id, payment_type } = data;
-  const STRIPE_SECRET = "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";
+  const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY;
 
   try {
-    // Create a Stripe Payment Link
     const res = await fetch("https://api.stripe.com/v1/payment_links", {
       method: "POST",
       headers: {
