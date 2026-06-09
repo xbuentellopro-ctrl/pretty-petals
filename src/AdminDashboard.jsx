@@ -1,4 +1,32 @@
 import { useState, useEffect } from "react";
+const getFlowerFallback = (name, desc) => {
+  const text = ((name || "") + " " + (desc || "")).toLowerCase();
+  const fileMap = {
+    "rose": "roses.jpg", "roses": "roses.jpg", "sunflower": "sunflower.jpg",
+    "tulip": "tulips.jpg", "tulips": "tulips.jpg", "peony": "peonies.jpg",
+    "peonies": "peonies.jpg", "orchid": "orchid.jpg", "dahlia": "dahlia.jpg",
+    "gerbera": "gerbera.jpg", "hydrangea": "hydrangea.jpg",
+    "ranunculus": "ranunculus.jpg", "carnation": "carnation-supreme.jpg",
+    "snapdragon": "snapdragon.jpg", "poppies": "poppies.jpg", "poppy": "poppies.jpg",
+    "lily": "rose-lily.jpg", "lilies": "rose-lily.jpg",
+    "eucalyptus": "seeded-eucalyptus.jpg", "baby breath": "babys-breath.jpg",
+    "spray rose": "spray-roses.jpg", "stock": "stock.jpg",
+    "veronica": "veronica.jpg", "dianthus": "dianthus-sweet.jpg",
+    "hipericum": "hipericum.jpg", "limonium": "limonium.jpg",
+    "solidago": "solidago.jpg", "monstera": "monstera.jpg", "palma": "palma.jpg",
+    "craspedias": "craspedias.jpg", "campanula": "campanula.jpg",
+    "wax flower": "wax-flowers.jpg", "delphinium": "delphinium.jpg",
+    "leather": "leather-leaf.jpg", "ruscus": "italian-ruscus.jpg",
+    "pompon": "cushion-pompons.jpg", "silver dollar": "silver-dollar-eucalyptus.jpg",
+    "mini carnation": "mini-carnation.jpg", "glitter": "roses.jpg",
+    "pink": "peonies.jpg", "coral": "gerbera.jpg",
+  };
+  for (const key of Object.keys(fileMap)) {
+    if (text.includes(key)) return "/flowers/" + fileMap[key];
+  }
+  return "/flowers/roses.jpg";
+};
+
 
 const SUPABASE_URL = "https://kxvdgjnybtwsusjvzmfc.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4dmRnam55YnR3c3VzanZ6bWZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDIwODEsImV4cCI6MjA5NTcxODA4MX0.8u1AZ0DJpyQc9ZnG8Pg6OTwrA_e5EgEjmpDXKUKdbHk";
@@ -10,9 +38,10 @@ const STATUS_COLORS = {
   "In Progress": { bg: "#fff8e1", text: "#f57f17" },
   "Ready": { bg: "#f3e5f5", text: "#6a1b9a" },
   "Delivered": { bg: "#e0f2f1", text: "#00695c" },
+  "Completed": { bg: "#fce4ec", text: "#880e4f" },
   "Cancelled": { bg: "#ffebee", text: "#c62828" },
 };
-const STATUS_OPTIONS = ["New", "Confirmed", "In Progress", "Ready", "Delivered", "Cancelled"];
+const STATUS_OPTIONS = ["New", "Confirmed", "In Progress", "Ready", "Delivered", "Completed", "Cancelled"];
 
 // ─── helpers ───────────────────────────────────────────────
 function fmtDate(d) {
@@ -105,10 +134,20 @@ function FinanceView({ orders }) {
   });
 
   const revenue = filtered.reduce((s, o) => s + (parseFloat(o.total_price) || 0), 0);
+  const paidRevenue = filtered.filter(o => o.is_paid).reduce((s, o) => s + (parseFloat(o.total_price) || 0), 0);
+  const pendingRevenue = revenue - paidRevenue;
   const materials = filtered.reduce((s, o) => s + (parseFloat(o.material_cost) || 0), 0);
   const labor = filtered.reduce((s, o) => s + (parseFloat(o.labor_fee) || 0), 0);
   const delivery = filtered.reduce((s, o) => s + (parseFloat(o.delivery_fee) || 0), 0);
-  const profit = revenue - materials;
+  const profit = paidRevenue - materials;
+
+  // Payment method breakdown
+  const payMethods = ["Square", "Cash", "Zelle", "CashApp"];
+  const methodTotals = payMethods.map(m => ({
+    method: m,
+    total: filtered.filter(o => o.is_paid && o.payment_method === m).reduce((s, o) => s + (parseFloat(o.total_price) || 0), 0),
+    count: filtered.filter(o => o.is_paid && o.payment_method === m).length
+  })).filter(m => m.count > 0);
 
   const periodLabels = { day: "Today", week: "This Week", month: "This Month", year: "This Year" };
 
@@ -132,9 +171,9 @@ function FinanceView({ orders }) {
       {/* Summary cards */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
         {[
-          { label: "Revenue", value: revenue, emoji: "💰", color: "#2e7d32", bg: "#e8f5e9" },
-          { label: "Material Cost", value: materials, emoji: "🌿", color: "#e65100", bg: "#fff3e0" },
-          { label: "Labor + Delivery", value: labor + delivery, emoji: "🚗", color: "#1565c0", bg: "#e3f2fd" },
+          { label: "Total Revenue", value: revenue, emoji: "💰", color: "#2e7d32", bg: "#e8f5e9" },
+          { label: "Paid ✅", value: paidRevenue, emoji: "✅", color: "#1b5e20", bg: "#c8e6c9" },
+          { label: "Pending 🕐", value: pendingRevenue, emoji: "🕐", color: "#e65100", bg: "#fff3e0" },
           { label: "Net Profit", value: profit, emoji: "📈", color: profit >= 0 ? "#2e7d32" : "#c62828", bg: profit >= 0 ? "#e8f5e9" : "#ffebee" },
         ].map(c => (
           <div key={c.label} style={{ background: c.bg, borderRadius: "14px", padding: "16px", textAlign: "center", border: `1px solid ${c.color}22` }}>
@@ -144,6 +183,22 @@ function FinanceView({ orders }) {
           </div>
         ))}
       </div>
+
+      {/* Payment method breakdown */}
+      {methodTotals.length > 0 && (
+        <div style={{ background: "white", borderRadius: "14px", padding: "16px", marginBottom: "20px", border: "1px solid #f0d0de" }}>
+          <p style={{ margin: "0 0 10px", fontSize: "11px", color: "#b06080", fontWeight: "600", fontFamily: "Montserrat, sans-serif" }}>PAYMENT METHODS</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "8px" }}>
+            {methodTotals.map(m => (
+              <div key={m.method} style={{ background: "#f8fce8", borderRadius: "10px", padding: "10px", border: "1px solid #c5e1a5", textAlign: "center" }}>
+                <div style={{ fontSize: "13px", fontWeight: "600", color: "#33691e", fontFamily: "Montserrat, sans-serif" }}>{m.method}</div>
+                <div style={{ fontSize: "18px", fontWeight: "600", color: "#2e7d32", fontFamily: "Cormorant Garamond, serif" }}>${m.total.toFixed(2)}</div>
+                <div style={{ fontSize: "10px", color: "#558b2f", fontFamily: "Montserrat, sans-serif" }}>{m.count} order{m.count > 1 ? "s" : ""}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Margin */}
       {revenue > 0 && (
@@ -169,6 +224,10 @@ function FinanceView({ orders }) {
             </div>
             <div style={{ textAlign: "right" }}>
               <p style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#2e7d32", fontFamily: "Cormorant Garamond, serif" }}>${(parseFloat(o.total_price) || 0).toFixed(2)}</p>
+              {o.is_paid
+                ? <span style={{ fontSize: "10px", color: "#2e7d32", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>✅ {o.payment_method}</span>
+                : <span style={{ fontSize: "10px", color: "#e65100", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>🕐 Unpaid</span>
+              }
               {o.material_cost > 0 && <p style={{ margin: 0, fontSize: "11px", color: "#e65100", fontFamily: "Montserrat, sans-serif" }}>-${(parseFloat(o.material_cost) || 0).toFixed(2)} cost</p>}
             </div>
           </div>
@@ -280,20 +339,47 @@ function InventoryView() {
   const [adding, setAdding] = useState(false);
   const [editingPrice, setEditingPrice] = useState(null);
   const [priceInput, setPriceInput] = useState("");
+  const [holidayMode, setHolidayMode] = useState(false);
+  const [showPwPrompt, setShowPwPrompt] = useState(false);
+  const [pwInput, setPwInput] = useState("");
+  const [pwError, setPwError] = useState("");
 
   const fetchInventory = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/inventory?select=*&order=name.asc`, {
-        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
-      });
-      const data = await res.json();
+      const [invRes, holidayRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/inventory?select=*&order=name.asc`, {
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+        }),
+        fetch(`${SUPABASE_URL}/rest/v1/settings?select=value&key=eq.holiday_mode`, {
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+        })
+      ]);
+      const data = await invRes.json();
+      const holidayData = await holidayRes.json();
       setItems(Array.isArray(data) ? data : []);
+      if (Array.isArray(holidayData) && holidayData[0]) {
+        setHolidayMode(holidayData[0].value === "true" || holidayData[0].value === true);
+      }
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
   useEffect(() => { fetchInventory(); }, []);
+
+  const confirmToggle = async () => {
+    if (pwInput !== ADMIN_PASSWORD) { setPwError("Wrong password"); return; }
+    const newVal = !holidayMode;
+    setHolidayMode(newVal);
+    setShowPwPrompt(false); setPwInput(""); setPwError("");
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/settings`, {
+        method: "POST",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify({ key: "holiday_mode", value: String(newVal) })
+      });
+    } catch (e) { console.error("Failed to save holiday mode", e); }
+  };
 
   const updateQty = async (id, delta) => {
     const item = items.find(i => i.id === id);
@@ -352,8 +438,31 @@ function InventoryView() {
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
         <h3 style={{ margin: 0, color: "#8b3a5e", fontFamily: "Cormorant Garamond, serif", fontSize: "22px", fontWeight: "400" }}>📦 Inventory</h3>
-        <button onClick={() => setAdding(!adding)} style={{ background: "linear-gradient(135deg, #d4547a, #c0396a)", border: "none", color: "white", borderRadius: "10px", padding: "8px 16px", fontSize: "12px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>+ Add Item</button>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "12px", color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>Holiday Pricing</span>
+            <div onClick={() => { setShowPwPrompt(true); setPwInput(""); setPwError(""); }} style={{ width: "44px", height: "24px", borderRadius: "12px", cursor: "pointer", background: holidayMode ? "#d4547a" : "#e0e0e0", position: "relative" }}>
+              <div style={{ position: "absolute", top: "3px", left: holidayMode ? "23px" : "3px", width: "18px", height: "18px", borderRadius: "50%", background: "white", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+            </div>
+          </div>
+          <button onClick={() => setAdding(!adding)} style={{ background: "linear-gradient(135deg, #d4547a, #c0396a)", border: "none", color: "white", borderRadius: "10px", padding: "8px 16px", fontSize: "12px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>+ Add Item</button>
+        </div>
       </div>
+
+      {showPwPrompt && (
+        <div style={{ background: "#fff8fb", borderRadius: "12px", padding: "14px", marginBottom: "14px", border: "1.5px solid #f0d0de" }}>
+          <p style={{ margin: "0 0 8px", fontSize: "12px", color: "#8b3a5e", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+            {holidayMode ? "🔓 Turn OFF Holiday Pricing?" : "🎄 Turn ON Holiday Pricing?"} Enter password to confirm:
+          </p>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <input type="password" placeholder="Password" value={pwInput} onChange={e => { setPwInput(e.target.value); setPwError(""); }}
+              style={{ flex: 1, padding: "8px 12px", borderRadius: "8px", border: "1.5px solid #f0d0de", fontSize: "13px", fontFamily: "Montserrat, sans-serif" }} />
+            <button onClick={confirmToggle} style={{ background: "#d4547a", border: "none", color: "white", borderRadius: "8px", padding: "8px 14px", fontSize: "12px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>Confirm</button>
+            <button onClick={() => { setShowPwPrompt(false); setPwInput(""); setPwError(""); }} style={{ background: "white", border: "1px solid #f0d0de", color: "#8b3a5e", borderRadius: "8px", padding: "8px 12px", fontSize: "12px", cursor: "pointer" }}>Cancel</button>
+          </div>
+          {pwError && <p style={{ margin: "6px 0 0", fontSize: "11px", color: "#c62828", fontFamily: "Montserrat, sans-serif" }}>{pwError}</p>}
+        </div>
+      )}
 
       {adding && (
         <div style={{ background: "white", borderRadius: "14px", padding: "16px", marginBottom: "14px", border: "1.5px solid #f0d0de" }}>
@@ -398,7 +507,10 @@ function InventoryView() {
                 </div>
               ) : (
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "#2e7d32", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>${parseFloat(item.standard_cost || 0).toFixed(2)}/stem</span>
+                  <span style={{ fontSize: "11px", color: holidayMode ? "#e65100" : "#2e7d32", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+                    ${holidayMode ? parseFloat((item.standard_cost || 0) * 2).toFixed(2) : parseFloat(item.standard_cost || 0).toFixed(2)}/stem
+                    {holidayMode && <span style={{ fontSize: "10px", color: "#e65100", marginLeft: "4px" }}>🎄 holiday</span>}
+                  </span>
                   <button onClick={() => { setEditingPrice(item.id); setPriceInput(item.standard_cost || ""); }} style={{ background: "#fce4ec", border: "none", color: "#d4547a", borderRadius: "6px", padding: "3px 8px", fontSize: "10px", cursor: "pointer", fontWeight: "600" }}>✏️ Edit Price</button>
                 </div>
               )}
@@ -472,17 +584,92 @@ function ReviewsView() {
 }
 
 // ─── DELIVERY MAP VIEW ─────────────────────────────────────
+const SHOP_LAT = 29.7468;
+const SHOP_LNG = -95.3352; // 410 Exchange St, Houston TX 77020
+
+const DELIVERY_ZONES = [
+  { maxMiles: 5,  fee: 10, label: "Zone 1" },
+  { maxMiles: 10, fee: 15, label: "Zone 2" },
+  { maxMiles: 15, fee: 20, label: "Zone 3" },
+  { maxMiles: 20, fee: 25, label: "Zone 4" },
+];
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 3958.8; // miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function getZone(miles) {
+  for (const z of DELIVERY_ZONES) {
+    if (miles <= z.maxMiles) return z;
+  }
+  return null; // outside range
+}
+
 function DeliveryMapView({ orders }) {
   const deliveryOrders = orders.filter(o => o.delivery_type === "delivery" && o.delivery_address);
   const [selected, setSelected] = useState(null);
+  const [distances, setDistances] = useState({});
+  const [geocoding, setGeocoding] = useState(false);
+  const [customFees, setCustomFees] = useState({});
 
   const MAPS_KEY = "AIzaSyDGBwlMgOy3Figp08Yd-i3Ix_JH-uIsz-E";
   const mapSrc = selected
     ? `https://www.google.com/maps/embed/v1/place?key=${MAPS_KEY}&q=${encodeURIComponent(selected.delivery_address + ", " + (selected.delivery_city || "Houston") + ", TX " + (selected.delivery_zip || ""))}&zoom=16`
     : `https://www.google.com/maps/embed/v1/place?key=${MAPS_KEY}&q=Houston,TX&zoom=11`;
 
+  const geocodeOrder = async (order) => {
+    if (distances[order.id]) return; // already computed
+    const addr = `${order.delivery_address}, ${order.delivery_city || "Houston"}, TX ${order.delivery_zip || ""}`;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=1`, {
+        headers: { "User-Agent": "PrettyPetals/1.0" }
+      });
+      const data = await res.json();
+      if (data && data[0]) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        const miles = haversine(SHOP_LAT, SHOP_LNG, lat, lng);
+        const zone = getZone(miles);
+        setDistances(prev => ({ ...prev, [order.id]: { miles: miles.toFixed(1), zone: zone?.label || "Outside Zone", fee: zone?.fee || null } }));
+      }
+    } catch (e) { console.error("Geocode error", e); }
+  };
+
+  const geocodeAll = async () => {
+    setGeocoding(true);
+    for (const order of deliveryOrders) {
+      await geocodeOrder(order);
+      await new Promise(r => setTimeout(r, 1100)); // Nominatim rate limit: 1 req/sec
+    }
+    setGeocoding(false);
+  };
+
   return (
     <div style={{ maxWidth: "700px", margin: "0 auto" }}>
+      {/* Zone legend */}
+      <div style={{ background: "white", borderRadius: "14px", padding: "14px 16px", marginBottom: "14px", border: "1px solid #f0d0de" }}>
+        <p style={{ margin: "0 0 8px", fontSize: "11px", color: "#b06080", fontWeight: "600", fontFamily: "Montserrat, sans-serif" }}>DELIVERY ZONES (from 410 Exchange St)</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "8px" }}>
+          {DELIVERY_ZONES.map(z => (
+            <div key={z.label} style={{ background: "#fff8fb", borderRadius: "10px", padding: "8px", textAlign: "center", border: "1px solid #f0d0de" }}>
+              <div style={{ fontSize: "12px", fontWeight: "600", color: "#d4547a", fontFamily: "Montserrat, sans-serif" }}>{z.label}</div>
+              <div style={{ fontSize: "10px", color: "#8b3a5e", fontFamily: "Montserrat, sans-serif" }}>≤{z.maxMiles} mi</div>
+              <div style={{ fontSize: "14px", fontWeight: "700", color: "#2e7d32", fontFamily: "Montserrat, sans-serif" }}>${z.fee}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: "10px", color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>20+ miles = enter custom fee on the order</span>
+          <button onClick={geocodeAll} disabled={geocoding} style={{ background: geocoding ? "#f0d0de" : "#d4547a", border: "none", color: "white", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: geocoding ? "not-allowed" : "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+            {geocoding ? "Calculating..." : "📍 Calculate All Distances"}
+          </button>
+        </div>
+      </div>
+
       <div style={{ background: "white", borderRadius: "16px", overflow: "hidden", marginBottom: "16px", boxShadow: "0 2px 12px rgba(180,80,120,0.08)", border: "1px solid #f0d0de" }}>
         <iframe
           key={mapSrc}
@@ -491,11 +678,17 @@ function DeliveryMapView({ orders }) {
           style={{ width: "100%", height: "300px", border: "none" }}
         />
       </div>
+
       {selected && (
         <div style={{ background: "#fce4ec", borderRadius: "12px", padding: "12px 16px", marginBottom: "12px", border: "1.5px solid #d4547a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <p style={{ margin: 0, fontSize: "13px", fontWeight: "600", color: "#8b3a5e", fontFamily: "Montserrat, sans-serif" }}>📍 {selected.first_name} {selected.last_name}</p>
             <p style={{ margin: 0, fontSize: "12px", color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>{selected.delivery_address}, {selected.delivery_city} {selected.delivery_zip}</p>
+            {distances[selected.id] && (
+              <p style={{ margin: "4px 0 0", fontSize: "12px", color: "#2e7d32", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+                {distances[selected.id].miles} miles · {distances[selected.id].zone} · {distances[selected.id].fee ? `$${distances[selected.id].fee} delivery fee` : customFees[selected.id] ? `$${customFees[selected.id]} custom fee` : "Outside delivery zone — enter custom fee below"}
+              </p>
+            )}
           </div>
           <button onClick={() => setSelected(null)} style={{ background: "white", border: "1px solid #f0d0de", borderRadius: "8px", padding: "6px 12px", color: "#b06080", cursor: "pointer", fontSize: "12px" }}>Clear</button>
         </div>
@@ -508,17 +701,44 @@ function DeliveryMapView({ orders }) {
           <div style={{ fontSize: "40px", marginBottom: "10px" }}>🗺️</div>
           <p style={{ color: "#b06080", fontFamily: "Montserrat, sans-serif", fontSize: "13px" }}>No delivery orders yet.</p>
         </div>
-      ) : deliveryOrders.map(o => (
-        <div key={o.id} onClick={() => setSelected(o)} style={{ background: selected?.id === o.id ? "#fce4ec" : "white", borderRadius: "14px", padding: "14px 16px", marginBottom: "10px", boxShadow: "0 2px 8px rgba(180,80,120,0.06)", border: `1.5px solid ${selected?.id === o.id ? "#d4547a" : "#f0d0de"}`, cursor: "pointer" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <p style={{ margin: "0 0 2px", fontSize: "14px", fontWeight: "600", color: "#3a1a2e", fontFamily: "Montserrat, sans-serif" }}>📍 {o.first_name} {o.last_name}</p>
-              <p style={{ margin: 0, fontSize: "12px", color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>{o.delivery_address}, {o.delivery_city} {o.delivery_zip}</p>
+      ) : deliveryOrders.map(o => {
+        const dist = distances[o.id];
+        const isOutside = dist && !dist.fee;
+        const customFee = customFees[o.id] || "";
+        return (
+          <div key={o.id} onClick={() => { setSelected(o); geocodeOrder(o); }} style={{ background: selected?.id === o.id ? "#fce4ec" : "white", borderRadius: "14px", padding: "14px 16px", marginBottom: "10px", boxShadow: "0 2px 8px rgba(180,80,120,0.06)", border: `1.5px solid ${selected?.id === o.id ? "#d4547a" : "#f0d0de"}`, cursor: "pointer" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: "0 0 2px", fontSize: "14px", fontWeight: "600", color: "#3a1a2e", fontFamily: "Montserrat, sans-serif" }}>📍 {o.first_name} {o.last_name}</p>
+                <p style={{ margin: 0, fontSize: "12px", color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>{o.delivery_address}, {o.delivery_city} {o.delivery_zip}</p>
+                {dist ? (
+                  <div>
+                    <p style={{ margin: "3px 0 0", fontSize: "11px", color: isOutside ? "#c62828" : "#2e7d32", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+                      {dist.miles} mi · {dist.zone}{!isOutside ? ` · $${dist.fee} fee` : " · Outside standard zones"}
+                    </p>
+                    {isOutside && (
+                      <div onClick={e => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "6px" }}>
+                        <span style={{ fontSize: "11px", color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>Custom fee: $</span>
+                        <input
+                          type="number"
+                          placeholder="0"
+                          value={customFee}
+                          onChange={e => setCustomFees(prev => ({ ...prev, [o.id]: e.target.value }))}
+                          style={{ width: "70px", padding: "4px 8px", borderRadius: "6px", border: "1.5px solid #d4547a", fontSize: "13px", fontFamily: "Montserrat, sans-serif" }}
+                        />
+                        {customFee && <span style={{ fontSize: "12px", color: "#2e7d32", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>= ${customFee} delivery</span>}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p style={{ margin: "3px 0 0", fontSize: "10px", color: "#c49aae", fontFamily: "Montserrat, sans-serif" }}>Tap to calculate distance</p>
+                )}
+              </div>
+              <span style={{ padding: "2px 10px", borderRadius: "20px", fontSize: "10px", background: STATUS_COLORS[o.status]?.bg || "#f5f5f5", color: STATUS_COLORS[o.status]?.text || "#555", fontWeight: "600", fontFamily: "Montserrat, sans-serif" }}>{o.status}</span>
             </div>
-            <span style={{ padding: "2px 10px", borderRadius: "20px", fontSize: "10px", background: STATUS_COLORS[o.status]?.bg || "#f5f5f5", color: STATUS_COLORS[o.status]?.text || "#555", fontWeight: "600", fontFamily: "Montserrat, sans-serif" }}>{o.status}</span>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -645,17 +865,45 @@ function RoseTiersEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
   const [holidayMode, setHolidayMode] = useState(false);
+  const [showPwPrompt, setShowPwPrompt] = useState(false);
+  const [pwInput, setPwInput] = useState("");
+  const [pwError, setPwError] = useState("");
+
   const fetchTiers = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/rose_tiers?select=*&order=quantity.asc`, {
-        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
-      });
-      const data = await res.json();
-      setTiers(Array.isArray(data) ? data : []);
+      const [tiersRes, holidayRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/rose_tiers?select=*&order=quantity.asc`, {
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+        }),
+        fetch(`${SUPABASE_URL}/rest/v1/settings?select=value&key=eq.rose_holiday_mode`, {
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+        })
+      ]);
+      const tiersData = await tiersRes.json();
+      const holidayData = await holidayRes.json();
+      setTiers(Array.isArray(tiersData) ? tiersData : []);
+      if (Array.isArray(holidayData) && holidayData[0]) {
+        setHolidayMode(holidayData[0].value === "true" || holidayData[0].value === true);
+      }
     } catch (e) { console.error(e); }
     setLoading(false);
   };
+
+  const confirmToggle = async () => {
+    if (pwInput !== ADMIN_PASSWORD) { setPwError("Wrong password"); return; }
+    const newVal = !holidayMode;
+    setHolidayMode(newVal);
+    setShowPwPrompt(false); setPwInput(""); setPwError("");
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/settings`, {
+        method: "POST",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify({ key: "rose_holiday_mode", value: String(newVal) })
+      });
+    } catch (e) { console.error("Failed to save holiday mode", e); }
+  };
+
   useEffect(() => { fetchTiers(); }, []);
   const updateTier = async (id, field, value) => {
     setSaving(id);
@@ -675,11 +923,25 @@ function RoseTiersEditor() {
           <h3 style={{ margin: 0, color: "#8b3a5e", fontFamily: "Cormorant Garamond, serif", fontSize: "20px", fontWeight: "400" }}>🌹 Rose Bouquet Pricing</h3>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <span style={{ fontSize: "12px", color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>Holiday Mode</span>
-            <div onClick={() => setHolidayMode(!holidayMode)} style={{ width: "44px", height: "24px", borderRadius: "12px", cursor: "pointer", background: holidayMode ? "#d4547a" : "#e0e0e0", position: "relative" }}>
+            <div onClick={() => { setShowPwPrompt(true); setPwInput(""); setPwError(""); }} style={{ width: "44px", height: "24px", borderRadius: "12px", cursor: "pointer", background: holidayMode ? "#d4547a" : "#e0e0e0", position: "relative" }}>
               <div style={{ position: "absolute", top: "3px", left: holidayMode ? "23px" : "3px", width: "18px", height: "18px", borderRadius: "50%", background: "white", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
             </div>
           </div>
         </div>
+        {showPwPrompt && (
+          <div style={{ background: "#fff8fb", borderRadius: "12px", padding: "14px", marginBottom: "16px", border: "1.5px solid #f0d0de" }}>
+            <p style={{ margin: "0 0 8px", fontSize: "12px", color: "#8b3a5e", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+              {holidayMode ? "🔓 Turn OFF Holiday Pricing?" : "🎄 Turn ON Holiday Pricing?"} Enter password to confirm:
+            </p>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <input type="password" placeholder="Password" value={pwInput} onChange={e => { setPwInput(e.target.value); setPwError(""); }}
+                style={{ flex: 1, padding: "8px 12px", borderRadius: "8px", border: "1.5px solid #f0d0de", fontSize: "13px", fontFamily: "Montserrat, sans-serif" }} />
+              <button onClick={confirmToggle} style={{ background: "#d4547a", border: "none", color: "white", borderRadius: "8px", padding: "8px 14px", fontSize: "12px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>Confirm</button>
+              <button onClick={() => { setShowPwPrompt(false); setPwInput(""); setPwError(""); }} style={{ background: "white", border: "1px solid #f0d0de", color: "#8b3a5e", borderRadius: "8px", padding: "8px 12px", fontSize: "12px", cursor: "pointer" }}>Cancel</button>
+            </div>
+            {pwError && <p style={{ margin: "6px 0 0", fontSize: "11px", color: "#c62828", fontFamily: "Montserrat, sans-serif" }}>{pwError}</p>}
+          </div>
+        )}
         {loading ? <p style={{ color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>Loading...</p> : (
           <div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "8px", marginBottom: "8px" }}>
@@ -789,7 +1051,7 @@ function PremadeBouquetsView() {
         bouquets.map(b => (
           <div key={b.id} style={{ background: "white", borderRadius: "14px", marginBottom: "10px", border: "1px solid #f0d0de", overflow: "hidden" }}>
             <div style={{ display: "flex", gap: "12px", padding: "14px 16px" }}>
-              {b.image_url && <img src={b.image_url} alt={b.name} style={{ width: "70px", height: "70px", borderRadius: "10px", objectFit: "cover", flexShrink: 0 }} onError={e => e.target.style.display="none"} />}
+              {<img src={b.image_url || getFlowerFallback(b.name, b.description)} alt={b.name} style={{ width: "70px", height: "70px", borderRadius: "10px", objectFit: "cover", flexShrink: 0 }} onError={e => e.target.style.display="none"} />}
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
                   <span style={{ fontSize: "16px", fontWeight: "600", color: "#3a1a2e", fontFamily: "Cormorant Garamond, serif" }}>{b.name}</span>
@@ -826,12 +1088,48 @@ export default function AdminDashboard() {
   const [expanded, setExpanded] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // order id
   const [paymentModal, setPaymentModal] = useState(null); // { order, type: 'deposit'|'final' }
+  const [orderTotal, setOrderTotal] = useState("");
   const [laborFee, setLaborFee] = useState("");
   const [deliveryFee, setDeliveryFee] = useState("");
   const [paymentSending, setPaymentSending] = useState(false);
   const [paymentSent, setPaymentSent] = useState(null); // order id that got sent
   const [deletePw, setDeletePw] = useState("");
   const [deleteError, setDeleteError] = useState("");
+  const [paidModal, setPaidModal] = useState(null); // order id
+  const [payMethod, setPayMethod] = useState("");
+
+  const markPaid = async (order, paidType) => {
+    if (!payMethod) return;
+    // Deposit paid: just log it, keep current status
+    // Final paid: log it AND move to Completed
+    const isFinal = paidType === "final";
+    const updates = {
+      payment_method: payMethod,
+      paid_at: new Date().toISOString(),
+      ...(isFinal
+        ? { is_paid: true, deposit_paid: true }
+        : { deposit_paid: true })
+    };
+    await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${order.id}`, {
+      method: "PATCH",
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
+      body: JSON.stringify(updates)
+    });
+    if (isFinal) {
+      await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${order.id}`, {
+        method: "PATCH",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
+        body: JSON.stringify({ status: "Completed" })
+      });
+    }
+    setOrders(prev => prev.map(o => o.id === order.id ? {
+      ...o,
+      ...updates,
+      ...(isFinal ? { status: "Completed" } : {})
+    } : o));
+    setPaidModal(null);
+    setPayMethod("");
+  };
 
   const deleteOrder = async (id) => {
     if (deletePw !== ADMIN_PASSWORD) { setDeleteError("Wrong password"); return; }
@@ -872,7 +1170,17 @@ export default function AdminDashboard() {
     if (order) {
       if (status === "Confirmed") {
         setLaborFee(""); setDeliveryFee("");
-        setPaymentModal({ order: { ...order, status }, type: "deposit" });
+        const nextOrder = { ...order, status };
+        // Auto-fill flower estimate for custom bouquets
+        let autoTotal = "";
+        if (!order.is_premade && order.bouquet_summary) {
+          const match = order.bouquet_summary.match(/Estimated:\s*\$([0-9.]+)/);
+          if (match) autoTotal = match[1];
+        } else if (order.is_premade && order.total_price) {
+          autoTotal = String(order.total_price);
+        }
+        setOrderTotal(autoTotal);
+        setPaymentModal({ order: nextOrder, type: "deposit" });
       } else if (status === "Ready") {
         setPaymentModal({ order: { ...order, status }, type: "final" });
       }
@@ -885,7 +1193,7 @@ export default function AdminDashboard() {
     const { order, type } = paymentModal;
     const labor = parseFloat(laborFee) || 0;
     const delivery = parseFloat(deliveryFee) || 0;
-    const budget = parseFloat((order.budget || "0").toString().replace(/[^0-9.]/g, "")) || 0;
+    const budget = parseFloat(orderTotal) || parseFloat((order.total_price || "0").toString().replace(/[^0-9.]/g, "")) || 0;
     const total = budget + labor + delivery;
     const amount = type === "deposit" ? total * 0.5 : total * 0.5;
     const label = type === "deposit" ? "50% Deposit" : "Final Payment (50%)";
@@ -956,7 +1264,7 @@ export default function AdminDashboard() {
         const { order, type } = paymentModal;
         const labor = parseFloat(laborFee) || 0;
         const delivery = parseFloat(deliveryFee) || 0;
-        const budget = parseFloat((order.budget || "0").toString().replace(/[^0-9.]/g, "")) || 0;
+        const budget = parseFloat(orderTotal) || parseFloat((order.total_price || "0").toString().replace(/[^0-9.]/g, "")) || 0;
         const total = budget + labor + delivery;
         const half = total * 0.5;
         return (
@@ -968,9 +1276,15 @@ export default function AdminDashboard() {
               <p style={{ margin: "0 0 18px", color: "#b06080", fontSize: "12px" }}>{order.first_name} {order.last_name} · {order.phone}</p>
 
               <div style={{ background: "#fdf6f9", borderRadius: "10px", padding: "12px", marginBottom: "16px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                  <span style={{ fontSize: "12px", color: "#b06080" }}>Customer Budget</span>
-                  <span style={{ fontSize: "12px", fontWeight: "600", color: "#3a1a2e" }}>${budget.toFixed(2)}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <span style={{ fontSize: "12px", color: "#b06080", fontWeight: "600" }}>ORDER TOTAL ($)</span>
+                  <input
+                    type="number"
+                    placeholder="Enter amount"
+                    value={orderTotal}
+                    onChange={e => setOrderTotal(e.target.value)}
+                    style={{ width: "110px", padding: "5px 10px", borderRadius: "8px", border: "1.5px solid #d4547a", fontSize: "13px", fontWeight: "600", color: "#3a1a2e", textAlign: "right", outline: "none" }}
+                  />
                 </div>
                 {type === "deposit" && <>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
@@ -1002,12 +1316,12 @@ export default function AdminDashboard() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
                   <div>
                     <p style={{ margin: "0 0 4px", fontSize: "10px", color: "#b06080", fontWeight: "600" }}>LABOR FEE ($)</p>
-                    <input type="number" placeholder="0" value={laborFee} onChange={e => setLaborFee(e.target.value)}
+                    <input type="text" placeholder="0" value={laborFee} onChange={e => setLaborFee(e.target.value)}
                       style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1.5px solid #f0d0de", fontSize: "14px", boxSizing: "border-box" }} />
                   </div>
                   <div>
                     <p style={{ margin: "0 0 4px", fontSize: "10px", color: "#b06080", fontWeight: "600" }}>DELIVERY FEE ($)</p>
-                    <input type="number" placeholder="0" value={deliveryFee} onChange={e => setDeliveryFee(e.target.value)}
+                    <input type="text" placeholder="0" value={deliveryFee} onChange={e => setDeliveryFee(e.target.value)}
                       style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1.5px solid #f0d0de", fontSize: "14px", boxSizing: "border-box" }} />
                   </div>
                 </div>
@@ -1146,9 +1460,7 @@ export default function AdminDashboard() {
                             ["📧 Email", order.email],
                             ["📱 Phone", order.phone],
                             ["📅 Date", fmtDate(order.date_needed)],
-                            ["⏰ Time", order.time_needed],
-                            ["🎨 Palette", order.color_palette],
-                            ["💰 Budget", order.budget],
+                            ["⏰ Time", (() => { if (!order.time_needed) return "—"; const [h, m] = order.time_needed.split(":"); const hr = parseInt(h); return `${hr % 12 || 12}:${m} ${hr >= 12 ? "PM" : "AM"}`; })()],
                             ["🏠 Address", order.delivery_address ? `${order.delivery_address}, ${order.delivery_city} ${order.delivery_zip}` : "—"],
                             ["💌 Recipient", order.recipient_name || "—"],
                           ].map(([label, val]) => (
@@ -1187,6 +1499,70 @@ export default function AdminDashboard() {
                               fontFamily: "Montserrat, sans-serif", fontWeight: "600"
                             }}>{s}</button>
                           ))}
+                        </div>
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "10px", alignItems: "center" }}>
+                          {/* Fully paid badge */}
+                          {order.is_paid && (
+                            <div style={{ background: "#e8f5e9", borderRadius: "8px", padding: "6px 14px", border: "1px solid #a5d6a7", display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span style={{ fontSize: "12px", color: "#2e7d32", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>✅ Fully Paid via {order.payment_method}</span>
+                              {order.total_price && <span style={{ fontSize: "11px", color: "#388e3c", fontFamily: "Montserrat, sans-serif" }}>${parseFloat(order.total_price).toFixed(2)}</span>}
+                            </div>
+                          )}
+                          {/* Deposit paid badge (when deposit done but final not yet) */}
+                          {order.deposit_paid && !order.is_paid && (
+                            <div style={{ background: "#fff8e1", borderRadius: "8px", padding: "6px 14px", border: "1px solid #ffe082", display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span style={{ fontSize: "12px", color: "#f57f17", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>💛 Deposit Paid via {order.payment_method}</span>
+                            </div>
+                          )}
+                          {/* Payment modal (inline) */}
+                          {paidModal === order.id ? (
+                            <div style={{ background: "#f1f8e9", borderRadius: "10px", padding: "12px", border: "1px solid #c5e1a5", width: "100%" }}>
+                              <p style={{ margin: "0 0 8px", fontSize: "12px", color: "#33691e", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+                                💵 How was {paidModal === order.id && paidModal && order.status === "Ready" && !order.is_paid ? "final payment" : "deposit"} received?
+                              </p>
+                              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
+                                {["Square", "Cash", "Zelle", "CashApp"].map(m => (
+                                  <button key={m} onClick={() => setPayMethod(m)} style={{
+                                    padding: "6px 14px", borderRadius: "8px", fontSize: "12px", cursor: "pointer",
+                                    border: payMethod === m ? "none" : "1px solid #c5e1a5",
+                                    background: payMethod === m ? "#558b2f" : "white",
+                                    color: payMethod === m ? "white" : "#33691e",
+                                    fontFamily: "Montserrat, sans-serif", fontWeight: "600"
+                                  }}>{m}</button>
+                                ))}
+                              </div>
+                              <div style={{ display: "flex", gap: "8px" }}>
+                                <button
+                                  onClick={() => markPaid(order, order.status === "Ready" ? "final" : "deposit")}
+                                  disabled={!payMethod}
+                                  style={{ background: payMethod ? "#558b2f" : "#ccc", border: "none", color: "white", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", cursor: payMethod ? "pointer" : "not-allowed", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+                                  ✅ Confirm {order.status === "Ready" ? "Final Payment" : "Deposit"} {order.total_price ? `($${(parseFloat(order.total_price) * 0.5).toFixed(2)})` : ""}
+                                </button>
+                                <button onClick={() => { setPaidModal(null); setPayMethod(""); }} style={{ background: "white", border: "1px solid #f0d0de", color: "#8b3a5e", borderRadius: "8px", padding: "8px 12px", fontSize: "12px", cursor: "pointer" }}>Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              {/* Confirmed: show deposit button if deposit not yet paid */}
+                              {order.status === "Confirmed" && !order.deposit_paid && !order.is_paid && (
+                                <button onClick={() => { setPaidModal(order.id); setPayMethod(""); }} style={{ background: "#fff8e1", border: "1px solid #ffe082", color: "#f57f17", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+                                  💛 Mark Deposit Paid (50%)
+                                </button>
+                              )}
+                              {/* Ready: show final payment button if not fully paid */}
+                              {order.status === "Ready" && !order.is_paid && (
+                                <button onClick={() => { setPaidModal(order.id); setPayMethod(""); }} style={{ background: "#e8f5e9", border: "1px solid #a5d6a7", color: "#2e7d32", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+                                  💵 Mark Final Payment Paid (50%)
+                                </button>
+                              )}
+                              {/* Any other unpaid status: generic button */}
+                              {!["Confirmed", "Ready"].includes(order.status) && !order.is_paid && (
+                                <button onClick={() => { setPaidModal(order.id); setPayMethod(""); }} style={{ background: "#e8f5e9", border: "1px solid #a5d6a7", color: "#2e7d32", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+                                  💵 Mark as Paid
+                                </button>
+                              )}
+                            </>
+                          )}
                         </div>
                         {deleteConfirm === order.id ? (
                           <div style={{ background: "#ffebee", borderRadius: "10px", padding: "12px", border: "1px solid #ffcdd2" }}>
