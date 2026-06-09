@@ -1522,11 +1522,7 @@ export default function AdminDashboard() {
                                   💵 Mark Final Payment Paid (50%)
                                 </button>
                               )}
-                              {!["Confirmed", "Ready"].includes(order.status) && !order.is_paid && (
-                                <button onClick={() => { setPaidModal(order.id); setPayMethod(""); }} style={{ background: "#e8f5e9", border: "1px solid #a5d6a7", color: "#2e7d32", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
-                                  💵 Mark as Paid
-                                </button>
-                              )}
+
                             </>
                           )}
                         </div>

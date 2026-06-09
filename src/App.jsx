@@ -1,6 +1,7 @@
 import { useState } from "react";
 import BouquetBuilder from "./BouquetBuilder";
 import CustomerPortal from "./CustomerPortal";
+import SplashScreen from "./SplashScreen";
 
 const SUPABASE_URL = "https://kxvdgjnybtwsusjvzmfc.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4dmRnam55YnR3c3VzanZ6bWZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDIwODEsImV4cCI6MjA5NTcxODA4MX0.8u1AZ0DJpyQc9ZnG8Pg6OTwrA_e5EgEjmpDXKUKdbHk";
@@ -35,6 +36,7 @@ const FloralDivider = () => (
 );
 
 export default function PrettyPetalsOrderForm() {
+  const [showSplash, setShowSplash] = useState(true);
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [showBuilder, setShowBuilder] = useState(false);
@@ -249,6 +251,8 @@ Check dashboard: prttypetals.com/admin`
       </div>
     </div>
   );
+
+  if (showSplash) return <SplashScreen onComplete={() => setShowSplash(false)} />;
 
   return (
     <div style={{
