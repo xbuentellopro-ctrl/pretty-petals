@@ -1168,22 +1168,7 @@ export default function AdminDashboard() {
     // Trigger payment modal on Confirmed or Ready
     const order = orders.find(o => o.id === id);
     if (order) {
-      if (status === "Confirmed") {
-        setLaborFee(""); setDeliveryFee("");
-        const nextOrder = { ...order, status };
-        // Auto-fill flower estimate for custom bouquets
-        let autoTotal = "";
-        if (!order.is_premade && order.bouquet_summary) {
-          const match = order.bouquet_summary.match(/Estimated:\s*\$([0-9.]+)/);
-          if (match) autoTotal = match[1];
-        } else if (order.is_premade && order.total_price) {
-          autoTotal = String(order.total_price);
-        }
-        setOrderTotal(autoTotal);
-        setPaymentModal({ order: nextOrder, type: "deposit" });
-      } else if (status === "Ready") {
-        setPaymentModal({ order: { ...order, status }, type: "final" });
-      }
+
     }
   };
 
