@@ -1,0 +1,24 @@
+{
+  "name": "Pretty Petals Admin",
+  "short_name": "PP Admin",
+  "description": "Pretty Petals order management dashboard",
+  "start_url": "/admin",
+  "display": "standalone",
+  "background_color": "#fff0f6",
+  "theme_color": "#d4547a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
