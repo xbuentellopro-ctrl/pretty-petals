@@ -250,7 +250,6 @@ Check dashboard: prttypetals.com/admin`
     </div>
   );
 
-
   return (
     <div style={{
       minHeight: "100vh",
