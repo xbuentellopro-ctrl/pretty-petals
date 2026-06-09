@@ -1513,14 +1513,30 @@ export default function AdminDashboard() {
                           {paidModal !== order.id && (
                             <>
                               {order.status === "Confirmed" && !order.deposit_paid && !order.is_paid && (
-                                <button onClick={() => { setPaidModal(order.id); setPayMethod(""); }} style={{ background: "#fff8e1", border: "1px solid #ffe082", color: "#f57f17", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
-                                  💛 Mark Deposit Paid (50%)
-                                </button>
+                                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                                  <button onClick={() => { setPaymentModal({ order, type: "deposit" }); setOrderTotal(""); setLaborFee(""); setDeliveryFee(""); }} style={{ background: "#e3f2fd", border: "1px solid #90caf9", color: "#1565c0", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+                                    💳 Send Deposit Link (50%)
+                                  </button>
+                                  <button onClick={() => { setPaidModal(order.id); setPayMethod(""); }} style={{ background: "#fff8e1", border: "1px solid #ffe082", color: "#f57f17", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+                                    💳 Send Deposit Link (50%)
+                                    </button>
+                                    <button onClick={() => { setPaymentModal({ order, type: "deposit" }); setOrderTotal(""); setLaborFee(""); setDeliveryFee(""); }} style={{ background: "#e3f2fd", border: "1px solid #90caf9", color: "#1565c0", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+                                    💛 Mark Deposit Paid (50%)
+                                  </button>
+                                </div>
                               )}
                               {order.status === "Ready" && !order.is_paid && (
-                                <button onClick={() => { setPaidModal(order.id); setPayMethod(""); }} style={{ background: "#e8f5e9", border: "1px solid #a5d6a7", color: "#2e7d32", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
-                                  💵 Mark Final Payment Paid (50%)
-                                </button>
+                                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                                  <button onClick={() => { setPaymentModal({ order, type: "final" }); setOrderTotal(""); setLaborFee(""); setDeliveryFee(""); }} style={{ background: "#f3e5f5", border: "1px solid #ce93d8", color: "#6a1b9a", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+                                    💳 Send Final Payment Link (50%)
+                                  </button>
+                                  <button onClick={() => { setPaidModal(order.id); setPayMethod(""); }} style={{ background: "#e8f5e9", border: "1px solid #a5d6a7", color: "#2e7d32", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+                                    💳 Send Final Payment Link (50%)
+                                    </button>
+                                    <button onClick={() => { setPaymentModal({ order, type: "final" }); setOrderTotal(""); setLaborFee(""); setDeliveryFee(""); }} style={{ background: "#f3e5f5", border: "1px solid #ce93d8", color: "#6a1b9a", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+                                    💵 Mark Final Payment Paid (50%)
+                                  </button>
+                                </div>
                               )}
 
                             </>
