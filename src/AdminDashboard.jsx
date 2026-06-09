@@ -1100,16 +1100,10 @@ export default function AdminDashboard() {
 
   const markPaid = async (order, paidType) => {
     if (!payMethod) return;
-    // Deposit paid: just log it, keep current status
-    // Final paid: log it AND move to Completed
     const isFinal = paidType === "final";
-    const updates = {
-      payment_method: payMethod,
-      paid_at: new Date().toISOString(),
-      ...(isFinal
-        ? { is_paid: true, deposit_paid: true }
-        : { deposit_paid: true })
-    };
+    const updates = isFinal
+      ? { is_paid: true, deposit_paid: true, payment_method: payMethod, paid_at: new Date().toISOString() }
+      : { deposit_paid: true, payment_method: payMethod, paid_at: new Date().toISOString() };
     await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${order.id}`, {
       method: "PATCH",
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
@@ -1122,11 +1116,7 @@ export default function AdminDashboard() {
         body: JSON.stringify({ status: "Completed" })
       });
     }
-    setOrders(prev => prev.map(o => o.id === order.id ? {
-      ...o,
-      ...updates,
-      ...(isFinal ? { status: "Completed" } : {})
-    } : o));
+    setOrders(prev => prev.map(o => o.id === order.id ? { ...o, ...updates, ...(isFinal ? { status: "Completed" } : {}) } : o));
     setPaidModal(null);
     setPayMethod("");
   };
@@ -1165,11 +1155,6 @@ export default function AdminDashboard() {
       body: JSON.stringify({ status })
     });
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
-    // Trigger payment modal on Confirmed or Ready
-    const order = orders.find(o => o.id === id);
-    if (order) {
-
-    }
   };
 
   const sendPaymentLink = async () => {
@@ -1486,24 +1471,24 @@ export default function AdminDashboard() {
                           ))}
                         </div>
                         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "10px", alignItems: "center" }}>
-                          {/* Fully paid badge */}
+                          {/* Fully paid */}
                           {order.is_paid && (
                             <div style={{ background: "#e8f5e9", borderRadius: "8px", padding: "6px 14px", border: "1px solid #a5d6a7", display: "flex", alignItems: "center", gap: "6px" }}>
                               <span style={{ fontSize: "12px", color: "#2e7d32", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>✅ Fully Paid via {order.payment_method}</span>
                               {order.total_price && <span style={{ fontSize: "11px", color: "#388e3c", fontFamily: "Montserrat, sans-serif" }}>${parseFloat(order.total_price).toFixed(2)}</span>}
                             </div>
                           )}
-                          {/* Deposit paid badge (when deposit done but final not yet) */}
+                          {/* Deposit paid badge */}
                           {order.deposit_paid && !order.is_paid && (
-                            <div style={{ background: "#fff8e1", borderRadius: "8px", padding: "6px 14px", border: "1px solid #ffe082", display: "flex", alignItems: "center", gap: "6px" }}>
+                            <div style={{ background: "#fff8e1", borderRadius: "8px", padding: "6px 14px", border: "1px solid #ffe082" }}>
                               <span style={{ fontSize: "12px", color: "#f57f17", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>💛 Deposit Paid via {order.payment_method}</span>
                             </div>
                           )}
-                          {/* Payment modal (inline) */}
-                          {paidModal === order.id ? (
+                          {/* Payment method picker (inline) */}
+                          {paidModal === order.id && (
                             <div style={{ background: "#f1f8e9", borderRadius: "10px", padding: "12px", border: "1px solid #c5e1a5", width: "100%" }}>
                               <p style={{ margin: "0 0 8px", fontSize: "12px", color: "#33691e", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
-                                💵 How was {paidModal === order.id && paidModal && order.status === "Ready" && !order.is_paid ? "final payment" : "deposit"} received?
+                                💵 How was {order.status === "Ready" ? "final payment" : "deposit"} received?
                               </p>
                               <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
                                 {["Square", "Cash", "Zelle", "CashApp"].map(m => (
@@ -1517,30 +1502,26 @@ export default function AdminDashboard() {
                                 ))}
                               </div>
                               <div style={{ display: "flex", gap: "8px" }}>
-                                <button
-                                  onClick={() => markPaid(order, order.status === "Ready" ? "final" : "deposit")}
-                                  disabled={!payMethod}
-                                  style={{ background: payMethod ? "#558b2f" : "#ccc", border: "none", color: "white", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", cursor: payMethod ? "pointer" : "not-allowed", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
+                                <button onClick={() => markPaid(order, order.status === "Ready" ? "final" : "deposit")} disabled={!payMethod} style={{ background: payMethod ? "#558b2f" : "#ccc", border: "none", color: "white", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", cursor: payMethod ? "pointer" : "not-allowed", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
                                   ✅ Confirm {order.status === "Ready" ? "Final Payment" : "Deposit"} {order.total_price ? `($${(parseFloat(order.total_price) * 0.5).toFixed(2)})` : ""}
                                 </button>
                                 <button onClick={() => { setPaidModal(null); setPayMethod(""); }} style={{ background: "white", border: "1px solid #f0d0de", color: "#8b3a5e", borderRadius: "8px", padding: "8px 12px", fontSize: "12px", cursor: "pointer" }}>Cancel</button>
                               </div>
                             </div>
-                          ) : (
+                          )}
+                          {/* Buttons — only show when picker not open */}
+                          {paidModal !== order.id && (
                             <>
-                              {/* Confirmed: show deposit button if deposit not yet paid */}
                               {order.status === "Confirmed" && !order.deposit_paid && !order.is_paid && (
                                 <button onClick={() => { setPaidModal(order.id); setPayMethod(""); }} style={{ background: "#fff8e1", border: "1px solid #ffe082", color: "#f57f17", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
                                   💛 Mark Deposit Paid (50%)
                                 </button>
                               )}
-                              {/* Ready: show final payment button if not fully paid */}
                               {order.status === "Ready" && !order.is_paid && (
                                 <button onClick={() => { setPaidModal(order.id); setPayMethod(""); }} style={{ background: "#e8f5e9", border: "1px solid #a5d6a7", color: "#2e7d32", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
                                   💵 Mark Final Payment Paid (50%)
                                 </button>
                               )}
-                              {/* Any other unpaid status: generic button */}
                               {!["Confirmed", "Ready"].includes(order.status) && !order.is_paid && (
                                 <button onClick={() => { setPaidModal(order.id); setPayMethod(""); }} style={{ background: "#e8f5e9", border: "1px solid #a5d6a7", color: "#2e7d32", borderRadius: "8px", padding: "6px 14px", fontSize: "11px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>
                                   💵 Mark as Paid
