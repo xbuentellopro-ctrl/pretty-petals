@@ -38,6 +38,7 @@ exports.handler = async function(event, context) {
           },
           location_id: SQUARE_LOCATION
         },
+        payment_note: `order_id:${order_id} type:${payment_type}`,
         checkout_options: {
           redirect_url: "https://prttypetals.com",
           ask_for_shipping_address: false
