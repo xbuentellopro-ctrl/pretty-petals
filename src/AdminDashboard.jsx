@@ -226,6 +226,8 @@ function FinanceView({ orders }) {
               <p style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#2e7d32", fontFamily: "Cormorant Garamond, serif" }}>${(parseFloat(o.total_price) || 0).toFixed(2)}</p>
               {o.is_paid
                 ? <span style={{ fontSize: "10px", color: "#2e7d32", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>✅ {o.payment_method}</span>
+                : o.deposit_paid
+                ? <span style={{ fontSize: "10px", color: "#f57f17", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>💛 Deposit Paid</span>
                 : <span style={{ fontSize: "10px", color: "#e65100", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>🕐 Unpaid</span>
               }
               {o.material_cost > 0 && <p style={{ margin: 0, fontSize: "11px", color: "#e65100", fontFamily: "Montserrat, sans-serif" }}>-${(parseFloat(o.material_cost) || 0).toFixed(2)} cost</p>}
