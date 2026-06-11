@@ -121,7 +121,7 @@ export default function PrettyPetalsOrderForm() {
           color_palette: form.colorPalette,
           color_notes: form.colorNotes,
           budget: form.budget,
-          total_price: form.isPremade ? parseFloat(form.budget) || null : null,
+          total_price: parseFloat(form.budget) || null,
           bouquet_summary: form.bouquetSummary || null,
           is_premade: form.isPremade || false,
           recipient_name: form.recipientName,

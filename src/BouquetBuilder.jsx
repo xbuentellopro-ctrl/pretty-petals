@@ -587,7 +587,7 @@ export default function BouquetBuilder({ onComplete, onBack }) {
     const fullSummary = finalEstimate > 0
       ? `${summary} | Estimated: $${finalEstimate.toFixed(2)} (flowers only, excl. labor & delivery)`
       : summary;
-    onComplete(fullSummary);
+    onComplete(fullSummary, false, finalEstimate > 0 ? finalEstimate : 0);
   };
 
   // Premade bouquets state — must be here before any early returns (React rules of hooks)
