@@ -70,7 +70,66 @@ function CalendarView({ orders }) {
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
+  const inp = (label, field, type="text", opts={}) => (
+    <div style={{ marginBottom: "12px" }}>
+      <label style={{ display: "block", fontSize: "11px", color: "#8b3a5e", fontFamily: "Montserrat, sans-serif", fontWeight: "600", marginBottom: "4px", textTransform: "uppercase" }}>{label}</label>
+      {opts.select ? (
+        <select value={addOrderForm[field]} onChange={e => setAddOrderForm(p => ({...p, [field]: e.target.value}))}
+          style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1.5px solid #f0d0de", fontSize: "13px", fontFamily: "Montserrat, sans-serif", background: "white" }}>
+          {opts.select.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+      ) : (
+        <input type={type} value={addOrderForm[field]} onChange={e => setAddOrderForm(p => ({...p, [field]: e.target.value}))}
+          style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1.5px solid #f0d0de", fontSize: "13px", fontFamily: "Montserrat, sans-serif", boxSizing: "border-box" }} />
+      )}
+    </div>
+  );
+
   return (
+    <>
+    {addOrderModal && (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}>
+        <div style={{ background: "white", borderRadius: "20px", padding: "24px", width: "100%", maxWidth: "500px", maxHeight: "90vh", overflowY: "auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <h3 style={{ margin: 0, color: "#8b3a5e", fontFamily: "Cormorant Garamond, serif", fontSize: "22px" }}>🌸 Add Manual Order</h3>
+            <button onClick={() => setAddOrderModal(false)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#b06080" }}>✕</button>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 12px" }}>
+            {inp("First Name", "first_name")}
+            {inp("Last Name", "last_name")}
+          </div>
+          {inp("Email", "email", "email")}
+          {inp("Phone", "phone", "tel")}
+          {inp("Occasion", "occasion", "text", { select: ["Birthday", "Anniversary", "Wedding", "Just Because", "Valentine's Day", "Mother's Day", "Other"] })}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 12px" }}>
+            {inp("Date Needed", "date_needed", "date")}
+            {inp("Time", "time_needed", "time")}
+          </div>
+          {inp("Delivery Type", "delivery_type", "text", { select: ["pickup", "delivery"] })}
+          {addOrderForm.delivery_type === "delivery" && inp("Delivery Address", "delivery_address")}
+          {inp("Total Price ($)", "total_price", "number")}
+          {inp("Bouquet Description", "bouquet_description")}
+          {inp("Note", "personal_note")}
+          {inp("Source", "source", "text", { select: ["In Person", "Instagram", "Facebook", "TikTok", "Text", "Email"] })}
+          {inp("Payment Method", "payment_method", "text", { select: ["Cash", "Zelle", "Square", "Other"] })}
+          {inp("Status", "status", "text", { select: ["New", "Confirmed", "In Progress", "Ready", "Delivered", "Completed"] })}
+          <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontFamily: "Montserrat, sans-serif", color: "#8b3a5e", cursor: "pointer" }}>
+              <input type="checkbox" checked={addOrderForm.deposit_paid} onChange={e => setAddOrderForm(p => ({...p, deposit_paid: e.target.checked, payment_status: e.target.checked ? "deposit_paid" : "unpaid"}))} />
+              Deposit Paid
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontFamily: "Montserrat, sans-serif", color: "#8b3a5e", cursor: "pointer" }}>
+              <input type="checkbox" checked={addOrderForm.is_paid} onChange={e => setAddOrderForm(p => ({...p, is_paid: e.target.checked, deposit_paid: e.target.checked ? true : p.deposit_paid, payment_status: e.target.checked ? "fully_paid" : (p.deposit_paid ? "deposit_paid" : "unpaid")}))} />
+              Fully Paid
+            </label>
+          </div>
+          <button onClick={saveManualOrder} disabled={addOrderSaving}
+            style={{ width: "100%", marginTop: "20px", padding: "14px", background: "#d4547a", color: "white", border: "none", borderRadius: "12px", fontSize: "15px", fontFamily: "Montserrat, sans-serif", fontWeight: "600", cursor: "pointer" }}>
+            {addOrderSaving ? "Saving..." : "💾 Save Order"}
+          </button>
+        </div>
+      </div>
+    )}
     <div style={{ maxWidth: "700px", margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
         <button onClick={() => setMonth(new Date(year, mon - 1, 1))} style={{ background: "white", border: "1.5px solid #f0d0de", borderRadius: "10px", padding: "8px 14px", color: "#b06080", cursor: "pointer", fontSize: "16px" }}>‹</button>
@@ -1098,6 +1157,15 @@ export default function AdminDashboard() {
   const [deletePw, setDeletePw] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [paidModal, setPaidModal] = useState(null); // order id
+  const [addOrderModal, setAddOrderModal] = useState(false);
+  const [addOrderForm, setAddOrderForm] = useState({
+    first_name: "", last_name: "", email: "", phone: "",
+    occasion: "", date_needed: "", time_needed: "", delivery_type: "pickup",
+    delivery_address: "", budget: "", total_price: "", bouquet_description: "",
+    personal_note: "", source: "In Person", payment_method: "Cash",
+    status: "Confirmed", payment_status: "unpaid", deposit_paid: false, is_paid: false
+  });
+  const [addOrderSaving, setAddOrderSaving] = useState(false);
   const [payMethod, setPayMethod] = useState("");
 
   const markPaid = async (order, paidType) => {
@@ -1148,6 +1216,37 @@ export default function AdminDashboard() {
       setOrders(Array.isArray(data) ? data : []);
     } catch (e) { console.error(e); }
     setLoading(false);
+  };
+
+  const saveManualOrder = async () => {
+    if (!addOrderForm.first_name || !addOrderForm.last_name) return alert("First and last name required");
+    setAddOrderSaving(true);
+    try {
+      const payload = {
+        ...addOrderForm,
+        total_price: parseFloat(addOrderForm.total_price) || null,
+        budget: addOrderForm.budget || null,
+        created_at: new Date().toISOString()
+      };
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
+        method: "POST",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=representation" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data && data[0]) {
+        setOrders(prev => [data[0], ...prev]);
+        setAddOrderModal(false);
+        setAddOrderForm({
+          first_name: "", last_name: "", email: "", phone: "",
+          occasion: "", date_needed: "", time_needed: "", delivery_type: "pickup",
+          delivery_address: "", budget: "", total_price: "", bouquet_description: "",
+          personal_note: "", source: "In Person", payment_method: "Cash",
+          status: "Confirmed", payment_status: "unpaid", deposit_paid: false, is_paid: false
+        });
+      }
+    } catch(err) { console.error(err); alert("Failed to save order"); }
+    setAddOrderSaving(false);
   };
 
   const updateStatus = async (id, status) => {
@@ -1370,6 +1469,7 @@ export default function AdminDashboard() {
               <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
                 <button onClick={() => setCalView("list")} style={{ flex: 1, padding: "9px", borderRadius: "10px", fontSize: "12px", border: `1.5px solid ${calView === "list" ? "#d4547a" : "#f0d0de"}`, background: calView === "list" ? "#fce4ec" : "white", color: calView === "list" ? "#8b3a5e" : "#b06080", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: calView === "list" ? "600" : "400" }}>📋 Order List</button>
                 <button onClick={() => setCalView("calendar")} style={{ flex: 1, padding: "9px", borderRadius: "10px", fontSize: "12px", border: `1.5px solid ${calView === "calendar" ? "#d4547a" : "#f0d0de"}`, background: calView === "calendar" ? "#fce4ec" : "white", color: calView === "calendar" ? "#8b3a5e" : "#b06080", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: calView === "calendar" ? "600" : "400" }}>📅 Calendar</button>
+                <button onClick={() => setAddOrderModal(true)} style={{ padding: "9px 14px", borderRadius: "10px", fontSize: "12px", border: "1.5px solid #d4547a", background: "#d4547a", color: "white", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>+ Add Order</button>
               </div>
               {calView === "list" && (
                 <>
