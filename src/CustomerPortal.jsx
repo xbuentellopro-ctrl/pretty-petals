@@ -76,7 +76,7 @@ export default function CustomerPortal({ onClose }) {
       const res = await fetch(`${SUPABASE_URL}/auth/v1/otp`, {
         method: "POST",
         headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), create_user: true })
+        body: JSON.stringify({ email: email.trim().toLowerCase(), create_user: true })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error_description || data.msg || "Failed to send code");
@@ -92,12 +92,12 @@ export default function CustomerPortal({ onClose }) {
       const res = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
         method: "POST",
         headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), token: code, type: "email" })
+        body: JSON.stringify({ email: email.trim().toLowerCase(), token: code, type: "email" })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error_description || "Invalid code");
       setSession(data);
-      await loadCustomerData(data.access_token, email.trim());
+      await loadCustomerData(data.access_token, email.trim().toLowerCase());
       setScreen("home");
     } catch (e) { setError(e.message); }
     setLoading(false);
@@ -121,7 +121,7 @@ export default function CustomerPortal({ onClose }) {
     // Create profile if doesn't exist
     if (!profile) {
       // Look up their name from orders
-      const ordersRes = await fetch(`${SUPABASE_URL}/rest/v1/orders?email=eq.${encodeURIComponent(userEmail)}&order=created_at.desc&limit=1&select=first_name,last_name,phone`, {
+      const ordersRes = await fetch(`${SUPABASE_URL}/rest/v1/orders?email=ilike.${encodeURIComponent(userEmail)}&order=created_at.desc&limit=1&select=first_name,last_name,phone`, {
         headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
       });
       const orderData = await ordersRes.json();
@@ -161,7 +161,7 @@ export default function CustomerPortal({ onClose }) {
     if (profile) setCustomer(profile);
 
     // Load orders by email
-    const ordersRes = await fetch(`${SUPABASE_URL}/rest/v1/orders?email=eq.${encodeURIComponent(userEmail)}&order=created_at.desc&select=*`, {
+    const ordersRes = await fetch(`${SUPABASE_URL}/rest/v1/orders?email=ilike.${encodeURIComponent(userEmail)}&order=created_at.desc&select=*`, {
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
     });
     const orderData = await ordersRes.json();
