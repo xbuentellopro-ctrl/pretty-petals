@@ -97,7 +97,7 @@ function CalendarView({ orders }) {
               border: isToday ? "1.5px solid #d4547a" : "1px solid #f0e0ea",
             }}>
               <div style={{ fontSize: "11px", fontWeight: "600", color: isToday ? "#d4547a" : "#8b3a5e", marginBottom: "3px", fontFamily: "Montserrat, sans-serif" }}>{day}</div>
-              {dayOrders.slice(0, 3).map(o => (
+              {dayOrders.map(o => (
                 <div key={o.id} style={{
                   fontSize: "9px", borderRadius: "4px", padding: "2px 4px", marginBottom: "2px",
                   background: STATUS_COLORS[o.status]?.bg || "#f5f5f5",
@@ -106,7 +106,7 @@ function CalendarView({ orders }) {
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
                 }}>{o.first_name} {o.last_name?.charAt(0)}.</div>
               ))}
-              {dayOrders.length > 3 && <div style={{ fontSize: "9px", color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>+{dayOrders.length - 3} more</div>}
+              
             </div>
           );
         })}
