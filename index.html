@@ -16,6 +16,14 @@
       window.__PRETTY_PETALS_ADMIN__ = intendedPath.startsWith('/admin');
       console.log('index.html loaded, path:', intendedPath, 'admin:', window.__PRETTY_PETALS_ADMIN__);
     </script>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D6LC10RDJY"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-D6LC10RDJY');
+    </script>
   </head>
   <body>
     <div id="root"></div>
