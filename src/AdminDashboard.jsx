@@ -1157,10 +1157,14 @@ export default function AdminDashboard() {
     if (!addOrderForm.first_name || !addOrderForm.last_name) { alert("First and last name required"); return; }
     setAddOrderSaving(true);
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/orders`, { method:"POST", headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`,"Content-Type":"application/json","Prefer":"return=representation"}, body:JSON.stringify({...addOrderForm,total_price:parseFloat(addOrderForm.total_price)||null,created_at:new Date().toISOString()}) });
+      const payload = {...addOrderForm, total_price: parseFloat(addOrderForm.total_price)||null, budget: addOrderForm.total_price||null, created_at: new Date().toISOString()};
+      delete payload.time_needed; // remove if column doesn't exist
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/orders`, { method:"POST", headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`,"Content-Type":"application/json","Prefer":"return=representation"}, body:JSON.stringify(payload) });
       const data = await res.json();
-      if (data?.[0]) { setOrders(prev=>[data[0],...prev]); setAddOrderModal(false); setAddOrderForm({first_name:"",last_name:"",email:"",phone:"",occasion:"Birthday",date_needed:"",time_needed:"",delivery_type:"pickup",delivery_address:"",budget:"",total_price:"",bouquet_description:"",personal_note:"",source:"In Person",payment_method:"Cash",status:"Confirmed",payment_status:"unpaid",deposit_paid:false,is_paid:false}); }
-    } catch(e){alert("Failed");}
+      console.log("Save order response:", res.status, data);
+      if (Array.isArray(data) && data[0]) { setOrders(prev=>[data[0],...prev]); setAddOrderModal(false); setAddOrderForm({first_name:"",last_name:"",email:"",phone:"",occasion:"Birthday",date_needed:"",time_needed:"",delivery_type:"pickup",delivery_address:"",budget:"",total_price:"",bouquet_description:"",personal_note:"",source:"In Person",payment_method:"Cash",status:"Confirmed",payment_status:"unpaid",deposit_paid:false,is_paid:false}); }
+      else { alert("Error: " + JSON.stringify(data)); }
+    } catch(e){alert("Failed: " + e.message);}
     setAddOrderSaving(false);
   };
 
