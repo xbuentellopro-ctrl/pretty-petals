@@ -93,7 +93,8 @@ const ADD_ONS = [
 const PAPER_WRAP_OPTIONS = ["White", "Black", "Pink", "Red", "Kraft Brown", "Blush", "Sage Green", "Lavender", "Gold", "Silver", "Designer Print", "Floral Print", "Marble Print", "Geometric Print", "Custom Special Print"];
 const FUNERAL_OPTIONS = ["Cross", "Heart", "Reef / Wreath", "Special Arrangement"];
 const ARRANGEMENT_STYLES = [
-  { name: "Paper Wrap", emoji: "🎁", desc: "Choose your wrap style" },
+  { name: "Round Bouquet Wrap", emoji: "💐", desc: "Classic hand-tied round shape" },
+  { name: "Flat Bouquet Wrap", emoji: "🎁", desc: "Modern flat-front presentation wrap" },
   { name: "Vase", emoji: "🏺", desc: "Ready to display" },
   { name: "Funeral Arrangement", emoji: "🕊️", desc: "Respectful tribute" },
   { name: "Special Event", emoji: "🎊", desc: "Requires consultation" },
@@ -457,6 +458,185 @@ function GreeneryGrid({ items, selected, onToggle, bunches, onBunchChange, prici
   );
 }
 
+// ── Live Bouquet Preview ──
+// Layered, organically-positioned cluster of the actual flower photos the
+// customer has selected so far. Greenery sits behind, secondary flowers in
+// the middle ring, primary flowers up front — it updates instantly as
+// selections change, no extra fetches or images needed.
+const GREENERY_SLOTS = [
+  { top: "6%", left: "50%", size: 92, rotate: 0 },
+  { top: "14%", left: "22%", size: 78, rotate: -18 },
+  { top: "14%", left: "78%", size: 78, rotate: 18 },
+];
+const SECONDARY_SLOTS = [
+  { top: "30%", left: "50%", size: 88, rotate: 0 },
+  { top: "38%", left: "26%", size: 76, rotate: -10 },
+  { top: "38%", left: "74%", size: 76, rotate: 10 },
+];
+const PRIMARY_SLOTS = [
+  { top: "48%", left: "50%", size: 120, rotate: 0 },
+  { top: "56%", left: "27%", size: 100, rotate: -8 },
+  { top: "56%", left: "73%", size: 100, rotate: 8 },
+];
+
+const WRAP_COLOR_HEX = {
+  White: "#ffffff", Black: "#2d3436", Pink: "#f4a7b9", Red: "#c0392b",
+  "Kraft Brown": "#b5895c", Blush: "#f7d7e3", "Sage Green": "#9caf88",
+  Lavender: "#c9a8e0", Gold: "#e8c468", Silver: "#c9ccd1",
+  "Designer Print": "#f4a7b9", "Floral Print": "#f4a7b9", "Marble Print": "#e8e6e3",
+  "Geometric Print": "#d4547a", "Custom Special Print": "#d4547a",
+};
+
+const FLOWER_COLOR_HEX = {
+  Red: "#c0392b", Pink: "#f4a7b9", "Hot Pink": "#e84393", White: "#ffffff",
+  "Light Pink": "#f8c8dc", Lavender: "#c9a8e0", Peach: "#ffcba4", Orange: "#e8743b",
+  Yellow: "#f1c40f", Purple: "#9b59b6", Coral: "#ff7f6b", Burgundy: "#5e2129",
+  Blush: "#f7d7e3", "Super White": "#ffffff", Blue: "#3498db", "Light Blue": "#aed6f1",
+  "Emerald Green": "#2e8b57",
+};
+function getFlowerTint(name, colorSelections) {
+  const colors = colorSelections?.[name];
+  if (!colors || colors.length === 0) return null;
+  for (const c of colors) {
+    if (FLOWER_COLOR_HEX[c]) return FLOWER_COLOR_HEX[c];
+  }
+  return null;
+}
+
+function BouquetPreview({ selections, ribbonColors }) {
+  const flowerLookup = (name) =>
+    PRIMARY_FLOWERS.find(f => f.name === name) || SECONDARY_FLOWERS.find(f => f.name === name);
+  const greeneryLookup = (name) => GREENERY.find(g => g.name === name);
+
+  const ribbon = ribbonColors.find(r => r.name === selections.ribbon);
+  const wrapColor = selections.arrangementStyle === "Vase"
+    ? "#cfe0e8"
+    : (WRAP_COLOR_HEX[selections.paperWrap] || "#f0d0de");
+
+  const hasAnything = selections.primaryFlowers.length > 0 || selections.secondaryFlowers.length > 0 || selections.greenery.length > 0;
+
+  return (
+    <div style={{
+      position: "relative", borderRadius: "18px", overflow: "hidden",
+      background: "linear-gradient(180deg, #fffaf9, #fff0f6)",
+      border: "1.5px solid #f0d0de", marginBottom: "18px",
+      boxShadow: "0 6px 20px rgba(180,80,120,0.12)"
+    }}>
+      <div style={{ position: "relative", height: "230px" }}>
+        {!hasAnything && (
+          <div style={{
+            position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center", color: "#c49aae",
+            fontFamily: "Montserrat, sans-serif", fontSize: "12px", gap: "6px"
+          }}>
+            <span style={{ fontSize: "30px" }}>💐</span>
+            Your bouquet will appear here as you build it
+          </div>
+        )}
+
+        {selections.greenery.map((name, i) => {
+          const item = greeneryLookup(name);
+          const slot = GREENERY_SLOTS[i % GREENERY_SLOTS.length];
+          if (!item) return null;
+          return (
+            <div key={"g" + name} style={{
+              position: "absolute", top: slot.top, left: slot.left,
+              width: slot.size, height: slot.size, borderRadius: "50%",
+              border: "3px solid white", overflow: "hidden",
+              boxShadow: "0 3px 10px rgba(0,0,0,0.12)",
+              transform: `translate(-50%, -50%) rotate(${slot.rotate}deg)`,
+              zIndex: 1, transition: "all 0.35s ease",
+              background: "#e8f0e0", display: "flex", alignItems: "center", justifyContent: "center"
+            }}>
+              <img src={item.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "block"; }} />
+              <span style={{ display: "none", fontSize: slot.size * 0.4 }}>{item.emoji}</span>
+            </div>
+          );
+        })}
+
+        {selections.secondaryFlowers.map((name, i) => {
+          const item = flowerLookup(name);
+          const slot = SECONDARY_SLOTS[i % SECONDARY_SLOTS.length];
+          if (!item) return null;
+          const tint = getFlowerTint(name, selections.secondaryColors);
+          return (
+            <div key={"s" + name} style={{
+              position: "absolute", top: slot.top, left: slot.left,
+              width: slot.size, height: slot.size, borderRadius: "50%",
+              border: "3px solid white", overflow: "hidden",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              transform: `translate(-50%, -50%) rotate(${slot.rotate}deg)`,
+              zIndex: 2, transition: "all 0.35s ease",
+              background: "#fce4ec", display: "flex", alignItems: "center", justifyContent: "center"
+            }}>
+              <img src={item.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "block"; }} />
+              <span style={{ display: "none", fontSize: slot.size * 0.4 }}>{item.emoji}</span>
+              {tint && <div style={{ position: "absolute", inset: 0, background: tint, mixBlendMode: "color", opacity: 0.6 }} />}
+              {tint && <div style={{ position: "absolute", bottom: 2, right: 2, width: 12, height: 12, borderRadius: "50%", background: tint, border: "1.5px solid white" }} />}
+            </div>
+          );
+        })}
+
+        {selections.primaryFlowers.map((name, i) => {
+          const item = flowerLookup(name);
+          const slot = PRIMARY_SLOTS[i % PRIMARY_SLOTS.length];
+          if (!item) return null;
+          const tint = getFlowerTint(name, selections.primaryColors);
+          return (
+            <div key={"p" + name} style={{
+              position: "absolute", top: slot.top, left: slot.left,
+              width: slot.size, height: slot.size, borderRadius: "50%",
+              border: "3px solid white", overflow: "hidden",
+              boxShadow: "0 5px 16px rgba(0,0,0,0.18)",
+              transform: `translate(-50%, -50%) rotate(${slot.rotate}deg)`,
+              zIndex: 3, transition: "all 0.35s ease",
+              background: "#fce4ec", display: "flex", alignItems: "center", justifyContent: "center"
+            }}>
+              <img src={item.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "block"; }} />
+              <span style={{ display: "none", fontSize: slot.size * 0.4 }}>{item.emoji}</span>
+              {tint && <div style={{ position: "absolute", inset: 0, background: tint, mixBlendMode: "color", opacity: 0.6 }} />}
+              {tint && <div style={{ position: "absolute", bottom: 3, right: 3, width: 16, height: 16, borderRadius: "50%", background: tint, border: "2px solid white" }} />}
+            </div>
+          );
+        })}
+
+        {/* Ribbon bow accent */}
+        {ribbon && ribbon.name !== "No Ribbon" && hasAnything && (
+          <div style={{
+            position: "absolute", bottom: "8px", left: "50%", transform: "translateX(-50%)",
+            display: "flex", alignItems: "center", gap: "6px", zIndex: 4
+          }}>
+            <div style={{
+              width: "22px", height: "22px", borderRadius: "50%", background: ribbon.color,
+              border: "2px solid white", boxShadow: "0 2px 6px rgba(0,0,0,0.2)"
+            }} />
+            <span style={{ fontSize: "11px", color: "#8b3a5e", fontFamily: "Montserrat, sans-serif", fontWeight: "600", background: "rgba(255,255,255,0.85)", padding: "2px 8px", borderRadius: "10px" }}>
+              {ribbon.name} ribbon
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Wrap / vase base band */}
+      {hasAnything && selections.arrangementStyle && (
+        <div style={{
+          height: "16px", background: wrapColor,
+          borderTop: "1.5px solid rgba(0,0,0,0.06)"
+        }} />
+      )}
+
+      <div style={{ padding: "10px 14px", borderTop: "1px solid #f5e0ea" }}>
+        <p style={{ margin: 0, fontSize: "10px", color: "#b06080", fontFamily: "Montserrat, sans-serif", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          🌸 Live Preview
+        </p>
+      </div>
+    </div>
+  );
+}
+
 const SUPABASE_URL = "https://kxvdgjnybtwsusjvzmfc.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4dmRnam55YnR3c3VzanZ6bWZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDIwODEsImV4cCI6MjA5NTcxODA4MX0.8u1AZ0DJpyQc9ZnG8Pg6OTwrA_e5EgEjmpDXKUKdbHk";
 
@@ -517,6 +697,29 @@ export default function BouquetBuilder({ onComplete, onBack }) {
 
     return () => clearInterval(poll);
   }, []);
+  const [aiPreviewImage, setAiPreviewImage] = useState(null);
+  const [aiPreviewLoading, setAiPreviewLoading] = useState(false);
+  const [aiPreviewError, setAiPreviewError] = useState("");
+
+  const generateAiPreview = async () => {
+    setAiPreviewLoading(true);
+    setAiPreviewError("");
+    try {
+      const res = await fetch("/.netlify/functions/generate-bouquet-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selections }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to generate preview");
+      setAiPreviewImage(data.image);
+    } catch (e) {
+      setAiPreviewError("Couldn't generate a preview right now. Try again in a moment.");
+    } finally {
+      setAiPreviewLoading(false);
+    }
+  };
+
   const [selections, setSelections] = useState({
     primaryFlowers: [],
     primaryColors: {},
@@ -566,8 +769,9 @@ export default function BouquetBuilder({ onComplete, onBack }) {
       const qty = selections.greeneryBunches[f] || 1;
       return `${f} (${qty} bunch${qty > 1 ? "es" : ""})`;
     });
-    const styleDetail = selections.arrangementStyle === "Paper Wrap" && selections.paperWrap
-      ? `Paper Wrap - ${selections.paperWrap}`
+    const isWrapStyle = selections.arrangementStyle === "Round Bouquet Wrap" || selections.arrangementStyle === "Flat Bouquet Wrap";
+    const styleDetail = isWrapStyle && selections.paperWrap
+      ? `${selections.arrangementStyle} - ${selections.paperWrap}`
       : selections.arrangementStyle === "Funeral Arrangement" && selections.funeralType
       ? `Funeral - ${selections.funeralType}`
       : selections.arrangementStyle === "Special Event"
@@ -589,6 +793,18 @@ export default function BouquetBuilder({ onComplete, onBack }) {
       : summary;
     onComplete(fullSummary, false, finalEstimate > 0 ? finalEstimate : 0);
   };
+
+  useEffect(() => {
+    setAiPreviewImage(null);
+    setAiPreviewError("");
+  }, [
+    JSON.stringify(selections.primaryFlowers),
+    JSON.stringify(selections.secondaryFlowers),
+    JSON.stringify(selections.greenery),
+    selections.arrangementStyle,
+    selections.paperWrap,
+    selections.ribbon,
+  ]);
 
   // Premade bouquets state — must be here before any early returns (React rules of hooks)
   const [premadeBouquets, setPremadeBouquets] = useState([]);
@@ -818,6 +1034,49 @@ export default function BouquetBuilder({ onComplete, onBack }) {
         </div>
       </div>
 
+      {/* Live Preview */}
+      <BouquetPreview selections={selections} ribbonColors={RIBBON_COLORS} />
+
+      {/* AI Real Photo Preview */}
+      {(selections.primaryFlowers.length > 0 || selections.secondaryFlowers.length > 0) && (
+        <div style={{
+          borderRadius: "16px", border: "1.5px solid #f0d0de", marginBottom: "18px",
+          background: "linear-gradient(135deg, #fff7fa, #fff)", padding: "14px", textAlign: "center"
+        }}>
+          {aiPreviewImage ? (
+            <>
+              <img src={aiPreviewImage} alt="AI-generated bouquet preview" style={{
+                width: "100%", borderRadius: "12px", marginBottom: "10px", display: "block"
+              }} />
+              <p style={{ margin: "0 0 10px", fontSize: "10px", color: "#c49aae", fontFamily: "Montserrat, sans-serif", lineHeight: "1.5" }}>
+                🌸 Final bouquet may differ from this AI-generated preview — each arrangement is thoughtfully hand-designed by Yazmin with care and artistic judgement.
+              </p>
+              <button onClick={generateAiPreview} disabled={aiPreviewLoading} style={{
+                padding: "8px 16px", borderRadius: "10px", border: "1.5px solid #d4547a",
+                background: "white", color: "#d4547a", fontSize: "12px", cursor: aiPreviewLoading ? "wait" : "pointer",
+                fontFamily: "Montserrat, sans-serif", fontWeight: "600"
+              }}>{aiPreviewLoading ? "Regenerating…" : "↻ Regenerate Preview"}</button>
+            </>
+          ) : (
+            <>
+              <p style={{ margin: "0 0 10px", fontSize: "12px", color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>
+                Want to see what this could actually look like as a real bouquet?
+              </p>
+              <button onClick={generateAiPreview} disabled={aiPreviewLoading} style={{
+                padding: "12px 20px", borderRadius: "12px", border: "none",
+                background: aiPreviewLoading ? "#e8b4c8" : "linear-gradient(135deg, #d4547a, #c0396a)",
+                color: "white", fontSize: "14px", cursor: aiPreviewLoading ? "wait" : "pointer",
+                fontFamily: "Cormorant Garamond, serif", fontWeight: "600",
+                boxShadow: "0 4px 16px rgba(180,80,120,0.25)"
+              }}>{aiPreviewLoading ? "🌸 Generating your bouquet…" : "✨ Generate Real Photo Preview"}</button>
+              {aiPreviewError && (
+                <p style={{ margin: "10px 0 0", fontSize: "11px", color: "#c0392b", fontFamily: "Montserrat, sans-serif" }}>{aiPreviewError}</p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {/* Step 1 — Primary Flowers */}
       {builderStep === 1 && (
         <div>
@@ -946,8 +1205,8 @@ export default function BouquetBuilder({ onComplete, onBack }) {
               ))}
             </div>
 
-            {/* Paper Wrap Options */}
-            {selections.arrangementStyle === "Paper Wrap" && (
+            {/* Wrap Color Options */}
+            {(selections.arrangementStyle === "Round Bouquet Wrap" || selections.arrangementStyle === "Flat Bouquet Wrap") && (
               <div style={{ marginTop: "12px", padding: "14px", background: "#fff0f6", borderRadius: "12px", border: "1px solid #f0d0de" }}>
                 <p style={{ margin: "0 0 8px", fontSize: "11px", color: "#b06080", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>SELECT WRAP STYLE:</p>
                 <select value={selections.paperWrap} onChange={e => setSelections(s => ({ ...s, paperWrap: e.target.value }))} style={{
