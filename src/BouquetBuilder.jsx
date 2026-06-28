@@ -697,28 +697,6 @@ export default function BouquetBuilder({ onComplete, onBack }) {
 
     return () => clearInterval(poll);
   }, []);
-  const [aiPreviewImage, setAiPreviewImage] = useState(null);
-  const [aiPreviewLoading, setAiPreviewLoading] = useState(false);
-  const [aiPreviewError, setAiPreviewError] = useState("");
-
-  const generateAiPreview = async () => {
-    setAiPreviewLoading(true);
-    setAiPreviewError("");
-    try {
-      const res = await fetch("/.netlify/functions/generate-bouquet-preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selections }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to generate preview");
-      setAiPreviewImage(data.image);
-    } catch (e) {
-      setAiPreviewError("Couldn't generate a preview right now. Try again in a moment.");
-    } finally {
-      setAiPreviewLoading(false);
-    }
-  };
 
   const [selections, setSelections] = useState({
     primaryFlowers: [],
@@ -793,18 +771,6 @@ export default function BouquetBuilder({ onComplete, onBack }) {
       : summary;
     onComplete(fullSummary, false, finalEstimate > 0 ? finalEstimate : 0);
   };
-
-  useEffect(() => {
-    setAiPreviewImage(null);
-    setAiPreviewError("");
-  }, [
-    JSON.stringify(selections.primaryFlowers),
-    JSON.stringify(selections.secondaryFlowers),
-    JSON.stringify(selections.greenery),
-    selections.arrangementStyle,
-    selections.paperWrap,
-    selections.ribbon,
-  ]);
 
   // Premade bouquets state — must be here before any early returns (React rules of hooks)
   const [premadeBouquets, setPremadeBouquets] = useState([]);
@@ -1036,46 +1002,6 @@ export default function BouquetBuilder({ onComplete, onBack }) {
 
       {/* Live Preview */}
       <BouquetPreview selections={selections} ribbonColors={RIBBON_COLORS} />
-
-      {/* AI Real Photo Preview */}
-      {(selections.primaryFlowers.length > 0 || selections.secondaryFlowers.length > 0) && (
-        <div style={{
-          borderRadius: "16px", border: "1.5px solid #f0d0de", marginBottom: "18px",
-          background: "linear-gradient(135deg, #fff7fa, #fff)", padding: "14px", textAlign: "center"
-        }}>
-          {aiPreviewImage ? (
-            <>
-              <img src={aiPreviewImage} alt="AI-generated bouquet preview" style={{
-                width: "100%", borderRadius: "12px", marginBottom: "10px", display: "block"
-              }} />
-              <p style={{ margin: "0 0 10px", fontSize: "10px", color: "#c49aae", fontFamily: "Montserrat, sans-serif", lineHeight: "1.5" }}>
-                🌸 Final bouquet may differ from this AI-generated preview — each arrangement is thoughtfully hand-designed by Yazmin with care and artistic judgement.
-              </p>
-              <button onClick={generateAiPreview} disabled={aiPreviewLoading} style={{
-                padding: "8px 16px", borderRadius: "10px", border: "1.5px solid #d4547a",
-                background: "white", color: "#d4547a", fontSize: "12px", cursor: aiPreviewLoading ? "wait" : "pointer",
-                fontFamily: "Montserrat, sans-serif", fontWeight: "600"
-              }}>{aiPreviewLoading ? "Regenerating…" : "↻ Regenerate Preview"}</button>
-            </>
-          ) : (
-            <>
-              <p style={{ margin: "0 0 10px", fontSize: "12px", color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>
-                Want to see what this could actually look like as a real bouquet?
-              </p>
-              <button onClick={generateAiPreview} disabled={aiPreviewLoading} style={{
-                padding: "12px 20px", borderRadius: "12px", border: "none",
-                background: aiPreviewLoading ? "#e8b4c8" : "linear-gradient(135deg, #d4547a, #c0396a)",
-                color: "white", fontSize: "14px", cursor: aiPreviewLoading ? "wait" : "pointer",
-                fontFamily: "Cormorant Garamond, serif", fontWeight: "600",
-                boxShadow: "0 4px 16px rgba(180,80,120,0.25)"
-              }}>{aiPreviewLoading ? "🌸 Generating your bouquet…" : "✨ Generate Real Photo Preview"}</button>
-              {aiPreviewError && (
-                <p style={{ margin: "10px 0 0", fontSize: "11px", color: "#c0392b", fontFamily: "Montserrat, sans-serif" }}>{aiPreviewError}</p>
-              )}
-            </>
-          )}
-        </div>
-      )}
 
       {/* Step 1 — Primary Flowers */}
       {builderStep === 1 && (
