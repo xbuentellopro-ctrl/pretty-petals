@@ -48,6 +48,12 @@ function fmtDate(d) {
   if (!d) return "—";
   return new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
+function fmtTime(t) {
+  if (!t) return "—";
+  const [h, m] = t.split(":");
+  const hr = parseInt(h);
+  return `${hr % 12 || 12}:${m} ${hr >= 12 ? "PM" : "AM"}`;
+}
 
 // ─── CALENDAR VIEW ─────────────────────────────────────────
 function CalendarView({ orders }) {
@@ -103,7 +109,7 @@ function CalendarView({ orders }) {
             }}>
               <div>
                 <p style={{ margin: "0 0 2px", fontSize: "14px", fontWeight: "600", color: "#8b3a5e", fontFamily: "Montserrat, sans-serif" }}>{o.first_name} {o.last_name}</p>
-                <p style={{ margin: 0, fontSize: "12px", color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>{o.time_needed || "No time set"} · {o.delivery_type === "delivery" ? "Delivery" : "Pickup"}</p>
+                <p style={{ margin: 0, fontSize: "12px", color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>{fmtTime(o.time_needed)} · {o.delivery_type === "delivery" ? "Delivery" : "Pickup"}</p>
               </div>
               <span style={{
                 fontSize: "10px", borderRadius: "6px", padding: "4px 8px", whiteSpace: "nowrap",
@@ -1540,7 +1546,7 @@ export default function AdminDashboard() {
                             ["📧 Email", order.email],
                             ["📱 Phone", order.phone],
                             ["📅 Date", fmtDate(order.date_needed)],
-                            ["⏰ Time", (() => { if (!order.time_needed) return "—"; const [h, m] = order.time_needed.split(":"); const hr = parseInt(h); return `${hr % 12 || 12}:${m} ${hr >= 12 ? "PM" : "AM"}`; })()],
+                            ["⏰ Time", fmtTime(order.time_needed)],
                             ["🏠 Address", order.delivery_address ? `${order.delivery_address}, ${order.delivery_city} ${order.delivery_zip}` : "—"],
                             ["💌 Recipient", order.recipient_name || "—"],
                           ].map(([label, val]) => (
