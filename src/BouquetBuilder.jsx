@@ -84,7 +84,6 @@ const ADD_ONS = [
   { name: "Pearl Bow Beads", emoji: "🤍", desc: "Elegant pearl details" },
   { name: "Toppers", emoji: "⭐", desc: "Specialty toppers" },
   { name: "Custom Cutouts", emoji: "✂️", desc: "Personalized shapes" },
-  { name: "Newspaper Wrap", emoji: "📰", desc: "Vintage style wrap" },
   { name: "Chocolates", emoji: "🍫", desc: "Sweet addition" },
   { name: "Pictures", emoji: "🖼️", desc: "Photo keepsake" },
   { name: "Custom Add-On", emoji: "✨", desc: "Your special request" },

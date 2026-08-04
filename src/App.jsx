@@ -46,7 +46,7 @@ export default function PrettyPetalsOrderForm() {
     date: "", time: "",
     colorPalette: "", colorNotes: "",
     budget: "",
-    recipientName: "", personalNote: "",
+    recipientName: "", personalNote: "", ribbonMessage: "",
     photo: null, photoName: "",
     agreeToContact: false,
     bouquetSummary: "",
@@ -55,6 +55,14 @@ export default function PrettyPetalsOrderForm() {
   const [errors, setErrors] = useState({});
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
+
+  const WORD_LIMIT = 50;
+  const wordCount = (text) => (text.trim() === "" ? 0 : text.trim().split(/\s+/).length);
+  const setWithWordLimit = (key, val) => {
+    const words = val.trim() === "" ? [] : val.trim().split(/\s+/);
+    if (words.length > WORD_LIMIT) return;
+    set(key, val);
+  };
 
   const validateStep = () => {
     const e = {};
@@ -236,8 +244,8 @@ Check dashboard: prttypetals.com/admin`
         <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginTop: "12px" }}>
           {[
             { label: "Instagram", href: "https://instagram.com/prttypetalss", icon: "📸" },
-            { label: "Facebook", href: "https://facebook.com/PrettyPetals", icon: "📘" },
-            { label: "TikTok", href: "https://tiktok.com/@prttypetalss", icon: "🎵" },
+            { label: "Facebook", href: "https://www.facebook.com/share/184CnctW6Y/?mibextid=wwXIfr", icon: "📘" },
+            { label: "TikTok", href: "https://www.tiktok.com/@prttypetalss?_r=1&_t=ZP-98adkRtwZ9a", icon: "🎵" },
           ].map(s => (
             <a key={s.label} href={s.href} target="_blank" rel="noreferrer"
               style={{ textDecoration: "none", color: "#8b3a5e", fontSize: "13px", fontFamily: "Montserrat, sans-serif" }}>
@@ -475,8 +483,8 @@ Check dashboard: prttypetals.com/admin`
         <div style={{ display: "flex", justifyContent: "center", gap: "16px", marginTop: "16px" }}>
           {[
             { label: "@prttypetalss", href: "https://instagram.com/prttypetalss", icon: "📸" },
-            { label: "Pretty Petals", href: "https://facebook.com/PrettyPetals", icon: "📘" },
-            { label: "@prttypetalss", href: "https://tiktok.com/@prttypetalss", icon: "🎵" },
+            { label: "Pretty Petals", href: "https://www.facebook.com/share/184CnctW6Y/?mibextid=wwXIfr", icon: "📘" },
+            { label: "@prttypetalss", href: "https://www.tiktok.com/@prttypetalss?_r=1&_t=ZP-98adkRtwZ9a", icon: "🎵" },
           ].map(s => (
             <a key={s.href} href={s.href} target="_blank" rel="noreferrer"
               style={{
@@ -714,9 +722,20 @@ Check dashboard: prttypetals.com/admin`
             <div style={{ marginTop: "16px" }}>
               <label style={labelStyle}>Personal Note / Message Card</label>
               <textarea style={{ ...inputStyle(false), minHeight: "100px", resize: "vertical" }}
-                placeholder="What would you like the card to say?"
-                value={form.personalNote} onChange={e => set("personalNote", e.target.value)} />
+                placeholder="What would you like the card to say? (50 words max)"
+                value={form.personalNote} onChange={e => setWithWordLimit("personalNote", e.target.value)} />
+              <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#c49aae", fontFamily: "Montserrat, sans-serif", textAlign: "right" }}>
+                {wordCount(form.personalNote)}/{WORD_LIMIT} words
+              </p>
             </div>
+            {form.isPremade && (
+              <div style={{ marginTop: "16px" }}>
+                <label style={labelStyle}>🎀 Custom Ribbon Message (optional)</label>
+                <input style={inputStyle(false)}
+                  placeholder="e.g. Happy Birthday!"
+                  value={form.ribbonMessage} onChange={e => set("ribbonMessage", e.target.value)} />
+              </div>
+            )}
             <div style={{ marginTop: "16px" }}>
               <label style={labelStyle}>Inspiration Photo (optional)</label>
               <label style={{
@@ -804,9 +823,9 @@ Check dashboard: prttypetals.com/admin`
         <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginTop: "8px" }}>
           <a href="https://instagram.com/prttypetalss" target="_blank" rel="noreferrer"
             style={{ color: "#b06080", fontSize: "12px", fontFamily: "Montserrat, sans-serif", textDecoration: "none" }}>📸 Instagram</a>
-          <a href="https://facebook.com/PrettyPetals" target="_blank" rel="noreferrer"
+          <a href="https://www.facebook.com/share/184CnctW6Y/?mibextid=wwXIfr" target="_blank" rel="noreferrer"
             style={{ color: "#b06080", fontSize: "12px", fontFamily: "Montserrat, sans-serif", textDecoration: "none" }}>📘 Facebook</a>
-          <a href="https://tiktok.com/@prttypetalss" target="_blank" rel="noreferrer"
+          <a href="https://www.tiktok.com/@prttypetalss?_r=1&_t=ZP-98adkRtwZ9a" target="_blank" rel="noreferrer"
             style={{ color: "#b06080", fontSize: "12px", fontFamily: "Montserrat, sans-serif", textDecoration: "none" }}>🎵 TikTok</a>
         </div>
       </div>
