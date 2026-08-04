@@ -101,10 +101,14 @@ export default function PrettyPetalsOrderForm() {
   const [showPortal, setShowPortal] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
 
-  const handleSubmit = async () => {
+  const [paymentAction, setPaymentAction] = useState(null); // null | "deposit" | "full"
+
+  const handleSubmit = async (paymentChoice) => {
     if (!validateStep()) return;
     setSubmitting(true);
     setSubmitError("");
+    if (paymentChoice) setPaymentAction(paymentChoice);
+    let newOrderId = null;
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
         method: "POST",
@@ -112,7 +116,7 @@ export default function PrettyPetalsOrderForm() {
           "Content-Type": "application/json",
           "apikey": SUPABASE_KEY,
           "Authorization": `Bearer ${SUPABASE_KEY}`,
-          "Prefer": "return=minimal"
+          "Prefer": "return=representation"
         },
         body: JSON.stringify({
           first_name: form.firstName,
@@ -141,6 +145,8 @@ export default function PrettyPetalsOrderForm() {
         const err = await response.text();
         throw new Error(err);
       }
+      const insertedRows = await response.json();
+      newOrderId = insertedRows?.[0]?.id || null;
       // Send email notification
       try {
         await fetch("/.netlify/functions/send-order-email", {
@@ -190,12 +196,45 @@ Check dashboard: prttypetals.com/admin`
         console.error("SMS notification failed:", smsErr);
       }
 
+      // If the customer chose to pay now, create a Square payment link and send them there
+      if (paymentChoice && newOrderId) {
+        const price = parseFloat(form.budget) || 0;
+        const amount = paymentChoice === "deposit" ? price * 0.5 : price;
+        try {
+          const payRes = await fetch("/.netlify/functions/create-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              amount,
+              customer_name: `${form.firstName} ${form.lastName}`,
+              customer_email: form.email,
+              customer_phone: form.phone,
+              order_id: newOrderId,
+              payment_type: paymentChoice === "deposit" ? "50% Deposit" : "Full Payment",
+              note: form.bouquetSummary || ""
+            })
+          });
+          const payResult = await payRes.json();
+          if (payResult.url) {
+            window.location.href = payResult.url;
+            return; // leaving the page — don't fall through to setSubmitted
+          } else {
+            console.error("Payment link creation failed:", payResult);
+            setSubmitError("Your order was placed, but we couldn't start checkout automatically. We'll send you a payment link shortly.");
+          }
+        } catch (payErr) {
+          console.error("Payment link error:", payErr);
+          setSubmitError("Your order was placed, but we couldn't start checkout automatically. We'll send you a payment link shortly.");
+        }
+      }
+
       setSubmitted(true);
     } catch (err) {
       setSubmitError(`Error: ${err.message}`);
       console.error(err);
     } finally {
       setSubmitting(false);
+      setPaymentAction(null);
     }
   };
 
@@ -802,13 +841,36 @@ Check dashboard: prttypetals.com/admin`
             }}>Continue →</button>
           ) : (
             <div style={{ flex: 2, display: "flex", flexDirection: "column", gap: "8px" }}>
-            <button onClick={handleSubmit} disabled={submitting} style={{
+            {form.isPremade && (() => {
+              const price = parseFloat(form.budget) || 0;
+              const depositAmt = price * 0.5;
+              return (
+                <>
+                  <button onClick={() => handleSubmit("deposit")} disabled={submitting} style={{
+                    width: "100%", padding: "14px", borderRadius: "12px",
+                    border: "none", background: submitting ? "#e8a0b8" : "linear-gradient(135deg, #d4547a, #c0396a)",
+                    color: "white", fontSize: "16px", cursor: submitting ? "not-allowed" : "pointer",
+                    fontFamily: "Cormorant Garamond, serif", fontWeight: "600",
+                    boxShadow: "0 4px 20px rgba(180,80,120,0.3)",
+                  }}>{submitting && paymentAction === "deposit" ? "Redirecting to secure checkout..." : `💳 Pay 50% Deposit Now ($${depositAmt.toFixed(2)})`}</button>
+                  <button onClick={() => handleSubmit("full")} disabled={submitting} style={{
+                    width: "100%", padding: "14px", borderRadius: "12px",
+                    border: "1.5px solid #d4547a", background: "white",
+                    color: "#8b3a5e", fontSize: "16px", cursor: submitting ? "not-allowed" : "pointer",
+                    fontFamily: "Cormorant Garamond, serif", fontWeight: "600",
+                  }}>{submitting && paymentAction === "full" ? "Redirecting to secure checkout..." : `💳 Pay in Full Now ($${price.toFixed(2)})`}</button>
+                  <p style={{ textAlign: "center", margin: "4px 0", fontSize: "11px", color: "#c49aae", fontFamily: "Montserrat, sans-serif" }}>— or —</p>
+                </>
+              );
+            })()}
+            <button onClick={() => handleSubmit()} disabled={submitting} style={{
               width: "100%", padding: "14px", borderRadius: "12px",
-              border: "none", background: submitting ? "#e8a0b8" : "linear-gradient(135deg, #d4547a, #c0396a)",
-              color: "white", fontSize: "16px", cursor: submitting ? "not-allowed" : "pointer",
+              border: form.isPremade ? "1.5px solid #f0d0de" : "none",
+              background: form.isPremade ? "white" : (submitting ? "#e8a0b8" : "linear-gradient(135deg, #d4547a, #c0396a)"),
+              color: form.isPremade ? "#b06080" : "white", fontSize: form.isPremade ? "13px" : "16px", cursor: submitting ? "not-allowed" : "pointer",
               fontFamily: "Cormorant Garamond, serif", fontWeight: "600",
-              boxShadow: "0 4px 20px rgba(180,80,120,0.3)",
-            }}>{submitting ? "Submitting..." : "🌸 Submit Order Request"}</button>
+              boxShadow: form.isPremade ? "none" : "0 4px 20px rgba(180,80,120,0.3)",
+            }}>{submitting && !paymentAction ? "Submitting..." : (form.isPremade ? "Submit & pay later" : "🌸 Submit Order Request")}</button>
             {submitError && <p style={{ color: "#c0392b", fontSize: "13px", fontFamily: "Montserrat, sans-serif", margin: 0, textAlign: "center" }}>{submitError}</p>}
           </div>
           )}
