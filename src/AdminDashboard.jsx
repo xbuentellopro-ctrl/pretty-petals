@@ -52,6 +52,8 @@ function fmtDate(d) {
 // ─── CALENDAR VIEW ─────────────────────────────────────────
 function CalendarView({ orders }) {
   const [month, setMonth] = useState(new Date());
+  const [calMode, setCalMode] = useState("month"); // month | day
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const year = month.getFullYear();
   const mon = month.getMonth();
   const firstDay = new Date(year, mon, 1).getDay();
@@ -70,8 +72,58 @@ function CalendarView({ orders }) {
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
+  const toDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const goToDay = (dateObj) => { setSelectedDate(dateObj); setCalMode("day"); };
+  const shiftDay = (delta) => { const d = new Date(selectedDate); d.setDate(d.getDate() + delta); setSelectedDate(d); };
+
+  if (calMode === "day") {
+    const dateStr = toDateStr(selectedDate);
+    const dayOrders = (ordersByDate[dateStr] || []).sort((a, b) => (a.time_needed || "").localeCompare(b.time_needed || ""));
+    return (
+      <div style={{ maxWidth: "700px", margin: "0 auto" }}>
+        <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
+          <button onClick={() => setCalMode("month")} style={{ padding: "8px 14px", borderRadius: "10px", fontSize: "12px", border: "1.5px solid #d4547a", background: "#fce4ec", color: "#8b3a5e", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>📅 Month</button>
+          <button style={{ padding: "8px 14px", borderRadius: "10px", fontSize: "12px", border: "1.5px solid #d4547a", background: "linear-gradient(135deg, #d4547a, #c0396a)", color: "white", cursor: "default", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>Day</button>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+          <button onClick={() => shiftDay(-1)} style={{ background: "white", border: "1.5px solid #f0d0de", borderRadius: "10px", padding: "8px 14px", color: "#b06080", cursor: "pointer", fontSize: "16px" }}>‹</button>
+          <h3 style={{ margin: 0, color: "#8b3a5e", fontFamily: "Cormorant Garamond, serif", fontSize: "20px", textAlign: "center" }}>
+            {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+          </h3>
+          <button onClick={() => shiftDay(1)} style={{ background: "white", border: "1.5px solid #f0d0de", borderRadius: "10px", padding: "8px 14px", color: "#b06080", cursor: "pointer", fontSize: "16px" }}>›</button>
+        </div>
+        {dayOrders.length === 0 ? (
+          <p style={{ textAlign: "center", color: "#c49aae", fontFamily: "Montserrat, sans-serif", fontSize: "13px", padding: "24px 0" }}>No orders for this day.</p>
+        ) : (
+          dayOrders.map(o => (
+            <div key={o.id} style={{
+              padding: "12px 14px", borderRadius: "12px", marginBottom: "8px",
+              background: "#fff8fb", border: "1px solid #f8e0eb", display: "flex",
+              justifyContent: "space-between", alignItems: "center", gap: "10px"
+            }}>
+              <div>
+                <p style={{ margin: "0 0 2px", fontSize: "14px", fontWeight: "600", color: "#8b3a5e", fontFamily: "Montserrat, sans-serif" }}>{o.first_name} {o.last_name}</p>
+                <p style={{ margin: 0, fontSize: "12px", color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>{o.time_needed || "No time set"} · {o.delivery_type === "delivery" ? "Delivery" : "Pickup"}</p>
+              </div>
+              <span style={{
+                fontSize: "10px", borderRadius: "6px", padding: "4px 8px", whiteSpace: "nowrap",
+                background: STATUS_COLORS[o.status]?.bg || "#f5f5f5",
+                color: STATUS_COLORS[o.status]?.text || "#555",
+                fontFamily: "Montserrat, sans-serif", fontWeight: "600"
+              }}>{o.status}</span>
+            </div>
+          ))
+        )}
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: "700px", margin: "0 auto" }}>
+      <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
+        <button style={{ padding: "8px 14px", borderRadius: "10px", fontSize: "12px", border: "1.5px solid #d4547a", background: "linear-gradient(135deg, #d4547a, #c0396a)", color: "white", cursor: "default", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>📅 Month</button>
+        <button onClick={() => goToDay(new Date())} style={{ padding: "8px 14px", borderRadius: "10px", fontSize: "12px", border: "1.5px solid #d4547a", background: "#fce4ec", color: "#8b3a5e", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>Day</button>
+      </div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
         <button onClick={() => setMonth(new Date(year, mon - 1, 1))} style={{ background: "white", border: "1.5px solid #f0d0de", borderRadius: "10px", padding: "8px 14px", color: "#b06080", cursor: "pointer", fontSize: "16px" }}>‹</button>
         <h3 style={{ margin: 0, color: "#8b3a5e", fontFamily: "Cormorant Garamond, serif", fontSize: "22px" }}>
@@ -91,8 +143,8 @@ function CalendarView({ orders }) {
           const dayOrders = ordersByDate[dateStr] || [];
           const isToday = today.getDate() === day && today.getMonth() === mon && today.getFullYear() === year;
           return (
-            <div key={i} style={{
-              minHeight: "64px", padding: "6px", borderRadius: "10px",
+            <div key={i} onClick={() => goToDay(new Date(year, mon, day))} style={{
+              minHeight: "64px", padding: "6px", borderRadius: "10px", cursor: "pointer",
               background: isToday ? "#fce4ec" : dayOrders.length > 0 ? "#fff8fb" : "white",
               border: isToday ? "1.5px solid #d4547a" : "1px solid #f0e0ea",
             }}>
@@ -1379,7 +1431,11 @@ export default function AdminDashboard() {
 
       {/* Main Nav */}
       <div style={{ background: "white", borderBottom: "1px solid #f0d0de", padding: "12px 16px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: "6px", maxWidth: "700px", margin: "0 auto 6px" }}>
+        <div style={{
+          display: "flex", gap: "6px", maxWidth: "700px", margin: "0 auto 6px",
+          overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none",
+          paddingBottom: "2px"
+        }}>
           {[
             ["orders", "📋", "Orders"],
             ["premade", "💐", "Premade"],
@@ -1391,12 +1447,13 @@ export default function AdminDashboard() {
             ["map", "🗺️", "Map"],
           ].map(([v, icon, label]) => (
             <button key={v} onClick={() => setMainView(v)} style={{
-              padding: "8px 4px", borderRadius: "10px", fontSize: "11px",
+              padding: "8px 10px", borderRadius: "10px", fontSize: "11px",
               border: `1.5px solid ${mainView === v ? "#d4547a" : "#f0d0de"}`,
               background: mainView === v ? "#fce4ec" : "white",
               color: mainView === v ? "#8b3a5e" : "#b06080",
               cursor: "pointer", fontFamily: "Montserrat, sans-serif",
-              fontWeight: mainView === v ? "600" : "400", textAlign: "center"
+              fontWeight: mainView === v ? "600" : "400", textAlign: "center",
+              flex: "0 0 auto", minWidth: "64px", whiteSpace: "nowrap"
             }}>{icon}<br />{label}</button>
           ))}
         </div>
