@@ -681,6 +681,12 @@ Check dashboard: prttypetals.com/admin`
             style={{ color: "#b06080", fontSize: "12px", fontFamily: "Montserrat, sans-serif", textDecoration: "none" }}>📘 Facebook</a>
           <a href="https://tiktok.com/@prttypetalss" target="_blank" rel="noreferrer"
             style={{ color: "#b06080", fontSize: "12px", fontFamily: "Montserrat, sans-serif", textDecoration: "none" }}>🎵 TikTok</a>
+          <div style={{ display: "flex", justifyContent: "center", gap: "16px", marginTop: "6px" }}>
+          <a href="/terms.html" target="_blank" rel="noreferrer"
+            style={{ color: "#c49aae", fontSize: "11px", fontFamily: "Montserrat, sans-serif", textDecoration: "underline" }}>Terms &amp; Conditions</a>
+          <a href="/privacy.html" target="_blank" rel="noreferrer"
+            style={{ color: "#c49aae", fontSize: "11px", fontFamily: "Montserrat, sans-serif", textDecoration: "underline" }}>Privacy Policy</a>
+        </div>
         </div>
       </div>
     </div>
