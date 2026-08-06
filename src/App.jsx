@@ -382,14 +382,17 @@ Check dashboard: prttypetals.com/admin`
               <input style={inputStyle(errors.email)} value={form.email} type="email"
                 onChange={e => set("email", e.target.value)} placeholder="jane@email.com" />
               {errors.email && <p style={errStyle}>{errors.email}</p>}
-            </div>
-            <div style={{ marginTop: "16px" }}>
+           <div style={{ marginTop: "16px" }}>
               <label style={labelStyle}>Phone Number</label>
               <input style={inputStyle(errors.phone)} value={form.phone} type="tel"
                 onChange={e => set("phone", e.target.value)} placeholder="(713) 000-0000" />
               {errors.phone && <p style={errStyle}>{errors.phone}</p>}
+              <p style={{ margin: "6px 0 0", fontSize: "11px", color: "#b06080", fontFamily: "Montserrat, sans-serif", lineHeight: "1.5" }}>
+                By providing your phone number, you agree to receive SMS order updates from Pretty Petals. Msg &amp; data rates may apply. Reply STOP to opt out. See our{" "}
+                <a href="/terms.html" target="_blank" rel="noreferrer" style={{ color: "#8b3a5e" }}>Terms</a> &amp;{" "}
+                <a href="/privacy.html" target="_blank" rel="noreferrer" style={{ color: "#8b3a5e" }}>Privacy Policy</a>.
+              </p>
             </div>
-
             {/* Bouquet Builder CTA */}
             <div style={{ marginTop: "20px", padding: "16px", borderRadius: "14px", background: "linear-gradient(135deg, #fff0f6, #fce4ec)", border: "1.5px solid #f4a7b9" }}>
               <p style={{ margin: "0 0 4px", fontSize: "15px", color: "#8b3a5e", fontFamily: "Cormorant Garamond, serif", fontWeight: "600" }}>🌸 Design Your Bouquet</p>
