@@ -382,7 +382,8 @@ Check dashboard: prttypetals.com/admin`
               <input style={inputStyle(errors.email)} value={form.email} type="email"
                 onChange={e => set("email", e.target.value)} placeholder="jane@email.com" />
               {errors.email && <p style={errStyle}>{errors.email}</p>}
-           <div style={{ marginTop: "16px" }}>
+            </div>
+            <div style={{ marginTop: "16px" }}>
               <label style={labelStyle}>Phone Number</label>
               <input style={inputStyle(errors.phone)} value={form.phone} type="tel"
                 onChange={e => set("phone", e.target.value)} placeholder="(713) 000-0000" />
