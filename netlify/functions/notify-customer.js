@@ -33,6 +33,11 @@ exports.handler = async function(event, context) {
       heading: "Thank you for your order!",
       body: custom_message || "We hope you love your arrangement! Thank you for choosing Pretty Petals."
     },
+    "Completed": {
+      subject: "How did we do? Leave us a review! 🌸",
+      heading: "We'd love to hear from you!",
+      body: custom_message || "Thank you for choosing Pretty Petals! We hope your arrangement brought joy. Would you mind taking a moment to leave us a review? It means the world to our small business."
+    },
     "Message": {
       subject: "Message from Pretty Petals",
       heading: "A message from Pretty Petals",
@@ -57,6 +62,15 @@ exports.handler = async function(event, context) {
       </div>`
     : '';
 
+  const reviewSection = status === "Completed"
+    ? `<div style="margin-top: 24px; text-align: center;">
+        <a href="https://prttypetals.com/#account" 
+           style="display: inline-block; padding: 14px 32px; background-color: #d4547a; color: white; text-decoration: none; border-radius: 12px; font-size: 16px; font-weight: bold;">
+          Leave a Review
+        </a>
+      </div>`
+    : '';
+
   const emailHtml = `
     <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
@@ -68,6 +82,7 @@ exports.handler = async function(event, context) {
         <h3 style="color: #d4547a; margin: 0 0 16px; font-size: 20px; font-weight: normal;">${statusInfo.heading}</h3>
         <p style="color: #5a2a3e; line-height: 1.8; font-size: 16px; margin: 0;">${statusInfo.body}</p>
         ${paymentSection}
+        ${reviewSection}
       </div>
       <div style="text-align: center; color: #b06080; font-size: 14px; line-height: 1.8;">
         <p>Questions? Email us at orders@prttypetals.com</p>

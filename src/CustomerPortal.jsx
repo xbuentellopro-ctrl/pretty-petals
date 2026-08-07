@@ -10,6 +10,7 @@ const STATUS_COLORS = {
   "In Progress": { bg: "#fff8e1", text: "#f57f17" },
   "Ready": { bg: "#f3e5f5", text: "#6a1b9a" },
   "Delivered": { bg: "#e0f2f1", text: "#00695c" },
+  "Completed": { bg: "#e0f2f1", text: "#00695c" },
   "Cancelled": { bg: "#ffebee", text: "#c62828" },
 };
 
@@ -21,7 +22,7 @@ function fmtDate(d) {
 }
 
 function StatusTracker({ status }) {
-  const currentIdx = STATUS_STEPS.indexOf(status);
+  const currentIdx = status === "Completed" ? STATUS_STEPS.length - 1 : STATUS_STEPS.indexOf(status);
   const isCancelled = status === "Cancelled";
   return (
     <div style={{ margin: "16px 0" }}>
@@ -410,7 +411,7 @@ export default function CustomerPortal({ onClose }) {
                       )}
                       {order.status === "Ready" && <div style={{ background: "#f3e5f5", borderRadius: "10px", padding: "12px", marginTop: "10px", textAlign: "center" }}><p style={{ margin: 0, color: "#6a1b9a", fontFamily: "Montserrat, sans-serif", fontSize: "13px", fontWeight: "600" }}>🌸 Your bouquet is ready! Yazmin will be in touch shortly.</p></div>}
                       {order.status === "Delivered" && <div style={{ background: "#e0f2f1", borderRadius: "10px", padding: "12px", marginTop: "10px", textAlign: "center" }}><p style={{ margin: 0, color: "#00695c", fontFamily: "Montserrat, sans-serif", fontSize: "13px", fontWeight: "600" }}>💚 Delivered! Thank you for choosing Pretty Petals 🌸</p></div>}
-                      {order.status === "Delivered" && !myReviews.some(r => r.order_id === order.id) && (
+                      {(order.status === "Delivered" || order.status === "Completed") && !myReviews.some(r => r.order_id === order.id) && (
                         <ReviewForm order={order} customerName={customer ? `${customer.first_name || order.first_name} ${customer.last_name || order.last_name}` : null}
                           onSubmitted={(orderId) => setMyReviews(prev => [...prev, { order_id: orderId }])} />
                       )}

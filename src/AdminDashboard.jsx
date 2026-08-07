@@ -1227,12 +1227,24 @@ export default function AdminDashboard() {
   };
 
   const updateStatus = async (id, status) => {
+    const order = orders.find(o => o.id === id);
     await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`, {
       method: "PATCH",
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
       body: JSON.stringify({ status })
     });
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+    if (status === "Completed" && order && order.status !== "Completed" && order.email) {
+      fetch("/.netlify/functions/notify-customer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer_email: order.email,
+          customer_name: order.first_name,
+          status: "Completed"
+        })
+      }).catch(err => console.error("Review email failed:", err));
+    }
   };
 
   const sendPaymentLink = async () => {

@@ -108,7 +108,7 @@ export default function PrettyPetalsOrderForm() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [showPortal, setShowPortal] = useState(false);
+  const [showPortal, setShowPortal] = useState(() => window.location.hash === "#account");
   const [showGuide, setShowGuide] = useState(false);
 
   const [paymentAction, setPaymentAction] = useState(null); // null | "deposit" | "full"
