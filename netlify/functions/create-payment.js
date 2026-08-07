@@ -41,7 +41,8 @@ exports.handler = async function(event, context) {
         payment_note: `order_id:${order_id} type:${payment_type}`,
         checkout_options: {
           redirect_url: "https://prttypetals.com",
-          ask_for_shipping_address: false
+          ask_for_shipping_address: false,
+          allow_tipping: true
         },
         pre_populated_data: {
           buyer_email: customer_email || undefined
