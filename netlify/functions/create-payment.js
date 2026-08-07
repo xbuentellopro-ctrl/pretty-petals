@@ -13,7 +13,7 @@ exports.handler = async function(event, context) {
   const { amount, customer_name, customer_email, customer_phone, order_id, payment_type, note } = data;
   const SQUARE_TOKEN = process.env.SQUARE_ACCESS_TOKEN;
   const SQUARE_LOCATION = process.env.SQUARE_LOCATION_ID;
-  const RESEND_KEY = "re_KxHrD7Rb_BXwm3ZazwMn9voTUPiLnhqJE";
+  const RESEND_KEY = process.env.RESEND_API_KEY;
 
   // --- Square payment link ---
   let paymentUrl = null;

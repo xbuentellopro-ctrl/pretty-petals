@@ -97,7 +97,7 @@ exports.handler = async function(event, context) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer re_KxHrD7Rb_BXwm3ZazwMn9voTUPiLnhqJE`
+        "Authorization": `Bearer ${process.env.RESEND_API_KEY}`
       },
       body: JSON.stringify({
         from: "Pretty Petals <orders@prttypetals.com>",
