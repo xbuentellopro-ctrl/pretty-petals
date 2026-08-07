@@ -702,7 +702,7 @@ export default function BouquetBuilder({ onComplete, onBack }) {
                   <p style={{ margin: "0 0 14px", fontSize: "13px", color: "#b06080", fontFamily: "Montserrat, sans-serif", lineHeight: "1.6" }}>{bouquet.description}</p>
                 )}
                 <button
-                  onClick={() => onComplete(`Premade: ${bouquet.name} — Starting at $${parseFloat(bouquet.price || 100).toFixed(0)}`, true, parseFloat(bouquet.price) || 0)}
+                  onClick={() => onComplete(`Premade: ${bouquet.name} — Starting at $${parseFloat(bouquet.price || 100).toFixed(0)}`, true, parseFloat(bouquet.price) || 0, bouquet.image_url || null)}
                   style={{
                     width: "100%", padding: "13px", borderRadius: "12px", border: "none",
                     background: "linear-gradient(135deg, #d4547a, #c0396a)",

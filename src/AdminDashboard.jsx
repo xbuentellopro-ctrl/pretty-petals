@@ -1571,7 +1571,18 @@ export default function AdminDashboard() {
                         {order.bouquet_summary && (
                           <div style={{ background: "#fff8fb", borderRadius: "8px", padding: "10px", marginBottom: "10px", border: "1px solid #f0d0de" }}>
                             <p style={{ margin: "0 0 4px", fontSize: "10px", color: "#b06080", fontWeight: "600", fontFamily: "Montserrat, sans-serif" }}>💐 BOUQUET</p>
-                            <p style={{ margin: 0, fontSize: "12px", color: "#3a1a2e", fontFamily: "Montserrat, sans-serif", lineHeight: "1.6" }}>{order.bouquet_summary}</p>
+                            <p style={{ margin: order.premade_image_url ? "0 0 8px" : 0, fontSize: "12px", color: "#3a1a2e", fontFamily: "Montserrat, sans-serif", lineHeight: "1.6" }}>{order.bouquet_summary}</p>
+                            {order.premade_image_url && (
+                              <img src={order.premade_image_url} alt="Selected bouquet"
+                                style={{ width: "100%", maxWidth: "220px", borderRadius: "10px", display: "block", border: "1px solid #f0d0de" }}
+                                onError={e => { e.target.style.display = "none"; }} />
+                            )}
+                          </div>
+                        )}
+                        {order.ribbon_message && (
+                          <div style={{ background: "#fff8fb", borderRadius: "8px", padding: "10px", marginBottom: "10px", border: "1px solid #f0d0de" }}>
+                            <p style={{ margin: "0 0 4px", fontSize: "10px", color: "#b06080", fontWeight: "600", fontFamily: "Montserrat, sans-serif" }}>🎀 RIBBON MESSAGE</p>
+                            <p style={{ margin: 0, fontSize: "12px", color: "#3a1a2e", fontFamily: "Montserrat, sans-serif", lineHeight: "1.6" }}>{order.ribbon_message}</p>
                           </div>
                         )}
                         <p style={{ margin: "0 0 8px", fontSize: "10px", color: "#b06080", fontWeight: "600", fontFamily: "Montserrat, sans-serif" }}>UPDATE STATUS:</p>

@@ -50,6 +50,7 @@ export default function PrettyPetalsOrderForm() {
     photo: null, photoName: "",
     agreeToContact: false,
     bouquetSummary: "",
+    premadeImageUrl: "",
     isPremade: false,
   });
   const [errors, setErrors] = useState({});
@@ -136,8 +137,10 @@ export default function PrettyPetalsOrderForm() {
           total_price: parseFloat(form.budget) || null,
           bouquet_summary: form.bouquetSummary || null,
           is_premade: form.isPremade || false,
+          premade_image_url: form.premadeImageUrl || null,
           recipient_name: form.recipientName,
           personal_note: form.personalNote,
+          ribbon_message: form.ribbonMessage || null,
           status: "New"
         })
       });
@@ -568,12 +571,13 @@ Check dashboard: prttypetals.com/admin`
           boxShadow: "0 20px 60px rgba(180,80,120,0.12)",
         }}>
           <BouquetBuilder
-            onComplete={(summary, isPremade, price) => {
+            onComplete={(summary, isPremade, price, imageUrl) => {
               set("bouquetSummary", summary);
               set("isPremade", !!isPremade);
               if (isPremade && price) {
                 set("budget", String(price));
               }
+              set("premadeImageUrl", isPremade ? (imageUrl || null) : null);
               setShowBuilder(false);
             }}
             onBack={() => setShowBuilder(false)}
