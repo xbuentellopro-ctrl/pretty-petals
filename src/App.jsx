@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BouquetBuilder from "./BouquetBuilder";
 import CustomerPortal from "./CustomerPortal";
 
@@ -38,6 +38,15 @@ export default function PrettyPetalsOrderForm() {
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [showBuilder, setShowBuilder] = useState(false);
+  const [publicReviews, setPublicReviews] = useState([]);
+  useEffect(() => {
+    fetch(`${SUPABASE_URL}/rest/v1/reviews?select=customer_name,rating,comment,created_at&rating=gte.4&order=created_at.desc&limit=6`, {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+    })
+      .then(r => r.json())
+      .then(data => setPublicReviews(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", phone: "",
     occasion: "", occasionOther: "",
@@ -880,6 +889,25 @@ Check dashboard: prttypetals.com/admin`
           )}
         </div>
       </div>}
+
+      {/* Reviews */}
+      {publicReviews.length > 0 && (
+        <div style={{ maxWidth: "560px", margin: "40px auto 0" }}>
+          <p style={{ textAlign: "center", fontFamily: "Cormorant Garamond, serif", fontSize: "24px", fontStyle: "italic", color: "#8b3a5e", margin: "0 0 16px" }}>What our customers say</p>
+          <div style={{ display: "flex", gap: "14px", overflowX: "auto", paddingBottom: "8px" }}>
+            {publicReviews.map((r, i) => (
+              <div key={i} style={{
+                minWidth: "220px", maxWidth: "220px", background: "rgba(255,255,255,0.92)", borderRadius: "16px",
+                padding: "16px", boxShadow: "0 4px 16px rgba(180,80,120,0.1)", flexShrink: 0
+              }}>
+                <div style={{ color: "#f9ca24", fontSize: "14px", marginBottom: "6px" }}>{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</div>
+                {r.comment && <p style={{ margin: "0 0 8px", fontSize: "13px", color: "#5a2a3e", fontFamily: "Cormorant Garamond, serif", fontStyle: "italic", lineHeight: "1.5" }}>"{r.comment}"</p>}
+                <p style={{ margin: 0, fontSize: "11px", color: "#b06080", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>— {r.customer_name || "Customer"}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div style={{ textAlign: "center", marginTop: "40px" }}>

@@ -55,6 +55,80 @@ function StatusTracker({ status }) {
   );
 }
 
+const GOOGLE_REVIEW_URL = "https://g.page/r/CVzIGNAFqjM5EAI/review";
+
+function ReviewForm({ order, customerName, onSubmitted }) {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async () => {
+    if (rating === 0) { setError("Please pick a star rating"); return; }
+    setSubmitting(true); setError("");
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/reviews`, {
+        method: "POST",
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          order_id: order.id,
+          customer_name: customerName || `${order.first_name} ${order.last_name}`,
+          rating,
+          comment: comment.trim() || null
+        })
+      });
+      if (!res.ok) throw new Error("Failed to submit review");
+      setDone(true);
+      onSubmitted(order.id);
+    } catch (e) {
+      setError("Something went wrong — please try again.");
+    }
+    setSubmitting(false);
+  };
+
+  if (done) {
+    return (
+      <div style={{ background: "#fff8fb", borderRadius: "10px", padding: "14px", marginTop: "10px", border: "1px solid #f0d0de", textAlign: "center" }}>
+        <p style={{ margin: "0 0 8px", color: "#8b3a5e", fontFamily: "Montserrat, sans-serif", fontSize: "13px", fontWeight: "600" }}>💕 Thank you for your review!</p>
+        {rating >= 4 && (
+          <a href={GOOGLE_REVIEW_URL} target="_blank" rel="noreferrer" style={{
+            display: "inline-block", marginTop: "4px", padding: "10px 20px", borderRadius: "10px",
+            background: "linear-gradient(135deg, #d4547a, #c0396a)", color: "white", textDecoration: "none",
+            fontFamily: "Montserrat, sans-serif", fontSize: "13px", fontWeight: "600"
+          }}>🌟 Loved it? Share it on Google!</a>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: "#fff8fb", borderRadius: "10px", padding: "14px", marginTop: "10px", border: "1px solid #f0d0de" }}>
+      <p style={{ margin: "0 0 8px", color: "#8b3a5e", fontFamily: "Montserrat, sans-serif", fontSize: "13px", fontWeight: "600" }}>How was your experience?</p>
+      <div style={{ display: "flex", gap: "4px", marginBottom: "10px", justifyContent: "center" }}>
+        {[1, 2, 3, 4, 5].map(n => (
+          <button key={n} onClick={() => setRating(n)} style={{
+            background: "none", border: "none", cursor: "pointer", fontSize: "28px", padding: "0 2px",
+            color: n <= rating ? "#f9ca24" : "#e0d0d8"
+          }}>★</button>
+        ))}
+      </div>
+      <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Tell us more (optional)"
+        style={{ width: "100%", minHeight: "60px", padding: "10px", borderRadius: "8px", border: "1.5px solid #f0d0de", fontFamily: "Montserrat, sans-serif", fontSize: "13px", resize: "vertical", boxSizing: "border-box" }} />
+      {error && <p style={{ margin: "6px 0 0", color: "#c0392b", fontSize: "12px", fontFamily: "Montserrat, sans-serif" }}>{error}</p>}
+      <button onClick={submit} disabled={submitting} style={{
+        width: "100%", marginTop: "10px", padding: "10px", borderRadius: "10px", border: "none",
+        background: submitting ? "#e8a0b8" : "linear-gradient(135deg, #d4547a, #c0396a)", color: "white",
+        fontFamily: "Montserrat, sans-serif", fontSize: "13px", fontWeight: "600", cursor: submitting ? "not-allowed" : "pointer"
+      }}>{submitting ? "Submitting..." : "Submit Review"}</button>
+    </div>
+  );
+}
+
 export default function CustomerPortal({ onClose }) {
   const [screen, setScreen] = useState("login");
   const [email, setEmail] = useState("");
@@ -62,6 +136,7 @@ export default function CustomerPortal({ onClose }) {
   const [session, setSession] = useState(null);
   const [customer, setCustomer] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [myReviews, setMyReviews] = useState([]);
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -166,6 +241,18 @@ export default function CustomerPortal({ onClose }) {
     });
     const orderData = await ordersRes.json();
     setOrders(Array.isArray(orderData) ? orderData : []);
+
+    // Load existing reviews for these orders (so we don't show the form twice)
+    const orderIds = (Array.isArray(orderData) ? orderData : []).map(o => o.id);
+    if (orderIds.length > 0) {
+      const reviewsRes = await fetch(`${SUPABASE_URL}/rest/v1/reviews?order_id=in.(${orderIds.join(",")})&select=order_id`, {
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+      });
+      const reviewsData = await reviewsRes.json();
+      setMyReviews(Array.isArray(reviewsData) ? reviewsData : []);
+    }
+
+
 
     // Load reminders
     if (profile?.id) {
@@ -323,6 +410,11 @@ export default function CustomerPortal({ onClose }) {
                       )}
                       {order.status === "Ready" && <div style={{ background: "#f3e5f5", borderRadius: "10px", padding: "12px", marginTop: "10px", textAlign: "center" }}><p style={{ margin: 0, color: "#6a1b9a", fontFamily: "Montserrat, sans-serif", fontSize: "13px", fontWeight: "600" }}>🌸 Your bouquet is ready! Yazmin will be in touch shortly.</p></div>}
                       {order.status === "Delivered" && <div style={{ background: "#e0f2f1", borderRadius: "10px", padding: "12px", marginTop: "10px", textAlign: "center" }}><p style={{ margin: 0, color: "#00695c", fontFamily: "Montserrat, sans-serif", fontSize: "13px", fontWeight: "600" }}>💚 Delivered! Thank you for choosing Pretty Petals 🌸</p></div>}
+                      {order.status === "Delivered" && !myReviews.some(r => r.order_id === order.id) && (
+                        <ReviewForm order={order} customerName={customer ? `${customer.first_name || order.first_name} ${customer.last_name || order.last_name}` : null}
+                          onSubmitted={(orderId) => setMyReviews(prev => [...prev, { order_id: orderId }])} />
+                      )}
+
                     </div>
                   )}
                 </div>
