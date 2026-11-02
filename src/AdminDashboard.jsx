@@ -1122,7 +1122,8 @@ function PremadeBouquetsView() {
         const data = await res.json();
         console.log("PATCH result:", data);
       } else {
-        await fetch(`${SUPABASE_URL}/rest/v1/premade_bouquets`, { method: "POST", headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" }, body: JSON.stringify(payload) });
+        const nextOrder = bouquets.reduce((m, b) => Math.max(m, b.sort_order || 0), 0) + 1;
+        await fetch(`${SUPABASE_URL}/rest/v1/premade_bouquets`, { method: "POST", headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" }, body: JSON.stringify({ ...payload, sort_order: nextOrder }) });
       }
       setForm({ name: "", description: "", price: "", image_url: "", category: "seasonal", active: true });
       setAdding(false); setEditingId(null);
@@ -1138,12 +1139,32 @@ function PremadeBouquetsView() {
     await fetch(`${SUPABASE_URL}/rest/v1/premade_bouquets?id=eq.${id}`, { method: "DELETE", headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } });
     setBouquets(prev => prev.filter(b => b.id !== id));
   };
+  // Reorder: move a bouquet up/down (or to top/bottom) — customer page follows this order
+  const [reordering, setReordering] = useState(false);
+  const moveBouquet = async (index, target) => {
+    if (target < 0 || target >= bouquets.length || target === index || reordering) return;
+    const list = [...bouquets];
+    const [item] = list.splice(index, 1);
+    list.splice(target, 0, item);
+    const renumbered = list.map((b, i) => ({ ...b, sort_order: i + 1 }));
+    const changed = renumbered.filter(b => (bouquets.find(o => o.id === b.id) || {}).sort_order !== b.sort_order);
+    setBouquets(renumbered);
+    setReordering(true); setPhotoMsg("");
+    try {
+      const results = await Promise.all(changed.map(b =>
+        fetch(`${SUPABASE_URL}/rest/v1/premade_bouquets?id=eq.${b.id}`, { method: "PATCH", headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" }, body: JSON.stringify({ sort_order: b.sort_order }) })
+      ));
+      if (results.some(r => !r.ok)) throw new Error("Couldn't save the new order — tap Refresh and try again");
+    } catch (e) { setPhotoMsg(e.message); await fetchBouquets(); }
+    setReordering(false);
+  };
   return (
     <div style={{ maxWidth: "700px", margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
         <h3 style={{ margin: 0, color: "#8b3a5e", fontFamily: "Cormorant Garamond, serif", fontSize: "22px", fontWeight: "400" }}>💐 Premade Arrangements</h3>
         <button onClick={() => { setAdding(true); setEditingId(null); setForm({ name: "", description: "", price: "", image_url: "", category: "seasonal", active: true }); }} style={{ background: "linear-gradient(135deg, #d4547a, #c0396a)", border: "none", color: "white", borderRadius: "10px", padding: "9px 16px", fontSize: "12px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>+ Add</button>
       </div>
+      {bouquets.length > 1 && <p style={{ margin: "-8px 0 12px", fontSize: "11px", color: "#c49aae", fontFamily: "Montserrat, sans-serif" }}>Use ▲ ▼ to set the order customers see. #1 shows first.</p>}
       {photoMsg && (
         <div onClick={() => setPhotoMsg("")} style={{ background: photoMsg.startsWith("✅") ? "#e8f5e9" : "#ffebee", color: photoMsg.startsWith("✅") ? "#2e7d32" : "#c62828", borderRadius: "10px", padding: "10px 14px", marginBottom: "12px", fontSize: "12px", fontFamily: "Montserrat, sans-serif", fontWeight: "600", cursor: "pointer" }}>{photoMsg}</div>
       )}
@@ -1175,9 +1196,15 @@ function PremadeBouquetsView() {
       )}
       {loading ? <p style={{ textAlign: "center", color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>Loading...</p> :
         bouquets.length === 0 ? <div style={{ textAlign: "center", padding: "40px", background: "white", borderRadius: "16px", border: "1px solid #f0d0de" }}><div style={{ fontSize: "40px", marginBottom: "10px" }}>💐</div><p style={{ color: "#b06080", fontFamily: "Montserrat, sans-serif", fontSize: "13px" }}>No premade arrangements yet.</p></div> :
-        bouquets.map(b => (
-          <div key={b.id} style={{ background: "white", borderRadius: "14px", marginBottom: "10px", border: "1px solid #f0d0de", overflow: "hidden" }}>
+        bouquets.map((b, i) => (
+          <div key={b.id} style={{ background: "white", borderRadius: "14px", marginBottom: "10px", border: "1px solid #f0d0de", overflow: "hidden", opacity: reordering ? 0.7 : 1 }}>
             <div style={{ display: "flex", gap: "12px", padding: "14px 16px" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", flexShrink: 0 }}>
+                <button title="Move to top" onClick={() => moveBouquet(i, 0)} disabled={i === 0 || reordering} style={{ ...{ width: "34px", height: "30px", borderRadius: "8px", border: "1px solid #f0d0de", background: "#fff0f6", color: "#8b3a5e", fontSize: "14px", cursor: "pointer", padding: 0, lineHeight: 1 }, fontSize: "11px", opacity: i === 0 ? 0.35 : 1 }}>⤒</button>
+                <button title="Move up" onClick={() => moveBouquet(i, i - 1)} disabled={i === 0 || reordering} style={{ ...{ width: "34px", height: "30px", borderRadius: "8px", border: "1px solid #f0d0de", background: "#fff0f6", color: "#8b3a5e", fontSize: "14px", cursor: "pointer", padding: 0, lineHeight: 1 }, opacity: i === 0 ? 0.35 : 1 }}>▲</button>
+                <span style={{ fontSize: "11px", color: "#b06080", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>{i + 1}</span>
+                <button title="Move down" onClick={() => moveBouquet(i, i + 1)} disabled={i === bouquets.length - 1 || reordering} style={{ ...{ width: "34px", height: "30px", borderRadius: "8px", border: "1px solid #f0d0de", background: "#fff0f6", color: "#8b3a5e", fontSize: "14px", cursor: "pointer", padding: 0, lineHeight: 1 }, opacity: i === bouquets.length - 1 ? 0.35 : 1 }}>▼</button>
+              </div>
               {<img key={b.image_url || "fallback"} src={b.image_url || getFlowerFallback(b.name, b.description)} alt={b.name} style={{ width: "70px", height: "70px", borderRadius: "10px", objectFit: "cover", flexShrink: 0 }} onError={e => e.target.style.display="none"} />}
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
