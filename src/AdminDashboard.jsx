@@ -1031,6 +1031,39 @@ function RoseTiersEditor() {
   );
 }
 
+// ─── PREMADE PHOTO UPLOAD (Supabase Storage bucket "premade-photos") ───
+const PHOTO_BUCKET = "premade-photos";
+// Shrinks a phone photo to max 1600px JPEG so the site loads fast
+const resizePhoto = (file) => new Promise((resolve, reject) => {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const max = 1600, scale = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url);
+    c.toBlob(b => b ? resolve(b) : reject(new Error("Could not read photo")), "image/jpeg", 0.85);
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("This photo format isn't supported — try a JPG or PNG")); };
+  img.src = url;
+});
+const uploadPremadePhoto = async (file, name) => {
+  const blob = await resizePhoto(file);
+  const slug = (name || "bouquet").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "bouquet";
+  const path = `${slug}-${Date.now()}.jpg`;
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${PHOTO_BUCKET}/${path}`, {
+    method: "POST",
+    headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "image/jpeg" },
+    body: blob,
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => "");
+    throw new Error(`Upload failed (${res.status}) ${t.slice(0, 120)}`);
+  }
+  return `${SUPABASE_URL}/storage/v1/object/public/${PHOTO_BUCKET}/${path}`;
+};
+
 // ─── PREMADE BOUQUETS VIEW ──────────────────────────────────
 function PremadeBouquetsView() {
   const [bouquets, setBouquets] = useState([]);
@@ -1039,6 +1072,35 @@ function PremadeBouquetsView() {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ name: "", description: "", price: "", image_url: "", category: "seasonal", active: true });
+  const [uploadingId, setUploadingId] = useState(null); // "form" or a bouquet id
+  const [photoMsg, setPhotoMsg] = useState("");
+  const pickPhoto = (onFile) => {
+    const input = document.createElement("input");
+    input.type = "file"; input.accept = "image/*";
+    input.onchange = () => input.files && input.files[0] && onFile(input.files[0]);
+    input.click();
+  };
+  // Upload inside the add/edit form
+  const uploadForForm = (file) => {
+    setUploadingId("form"); setPhotoMsg("");
+    uploadPremadePhoto(file, form.name)
+      .then(url => setForm(p => ({ ...p, image_url: url })))
+      .catch(e => setPhotoMsg(e.message))
+      .finally(() => setUploadingId(null));
+  };
+  // One-tap photo swap straight from the list (saves immediately)
+  const replacePhoto = (b, file) => {
+    setUploadingId(b.id); setPhotoMsg("");
+    uploadPremadePhoto(file, b.name)
+      .then(async url => {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/premade_bouquets?id=eq.${b.id}`, { method: "PATCH", headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" }, body: JSON.stringify({ image_url: url }) });
+        if (!res.ok) throw new Error(`Couldn't save photo (${res.status})`);
+        setBouquets(prev => prev.map(x => x.id === b.id ? { ...x, image_url: url } : x));
+        setPhotoMsg(`✅ Photo updated for ${b.name} — live on the site now`);
+      })
+      .catch(e => setPhotoMsg(e.message))
+      .finally(() => setUploadingId(null));
+  };
   const fetchBouquets = async () => {
     setLoading(true);
     try {
@@ -1082,6 +1144,9 @@ function PremadeBouquetsView() {
         <h3 style={{ margin: 0, color: "#8b3a5e", fontFamily: "Cormorant Garamond, serif", fontSize: "22px", fontWeight: "400" }}>💐 Premade Arrangements</h3>
         <button onClick={() => { setAdding(true); setEditingId(null); setForm({ name: "", description: "", price: "", image_url: "", category: "seasonal", active: true }); }} style={{ background: "linear-gradient(135deg, #d4547a, #c0396a)", border: "none", color: "white", borderRadius: "10px", padding: "9px 16px", fontSize: "12px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>+ Add</button>
       </div>
+      {photoMsg && (
+        <div onClick={() => setPhotoMsg("")} style={{ background: photoMsg.startsWith("✅") ? "#e8f5e9" : "#ffebee", color: photoMsg.startsWith("✅") ? "#2e7d32" : "#c62828", borderRadius: "10px", padding: "10px 14px", marginBottom: "12px", fontSize: "12px", fontFamily: "Montserrat, sans-serif", fontWeight: "600", cursor: "pointer" }}>{photoMsg}</div>
+      )}
       {(adding || editingId) && (
         <div style={{ background: "white", borderRadius: "16px", padding: "20px", marginBottom: "16px", border: "1.5px solid #d4547a" }}>
           <h4 style={{ margin: "0 0 14px", color: "#8b3a5e", fontFamily: "Cormorant Garamond, serif", fontSize: "18px", fontWeight: "400" }}>{editingId ? "Edit" : "New"} Arrangement</h4>
@@ -1093,9 +1158,11 @@ function PremadeBouquetsView() {
           </div>
           <div style={{ marginBottom: "10px" }}><p style={{ margin: "0 0 4px", fontSize: "10px", color: "#b06080", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>Description</p>
           <input type="text" placeholder="Short description..." value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1.5px solid #f0d0de", fontSize: "13px", boxSizing: "border-box" }} /></div>
-          <div style={{ marginBottom: "10px" }}><p style={{ margin: "0 0 4px", fontSize: "10px", color: "#b06080", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>Image URL</p>
+          <div style={{ marginBottom: "10px" }}><p style={{ margin: "0 0 4px", fontSize: "10px", color: "#b06080", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>Photo</p>
+          <button type="button" onClick={() => pickPhoto(uploadForForm)} disabled={uploadingId === "form"} style={{ width: "100%", marginBottom: "6px", background: "#fce4ec", border: "1.5px dashed #d4547a", color: "#d4547a", borderRadius: "10px", padding: "12px", fontSize: "13px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>{uploadingId === "form" ? "Uploading..." : (form.image_url ? "📷 Change Photo" : "📷 Upload Photo")}</button>
+          <p style={{ margin: "4px 0", fontSize: "10px", color: "#c49aae", fontFamily: "Montserrat, sans-serif" }}>or paste an image link:</p>
           <input type="text" placeholder="e.g. /flowers/36-Count-Red-Roses.jpg" value={form.image_url} onChange={e => setForm(p => ({ ...p, image_url: e.target.value }))} style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1.5px solid #f0d0de", fontSize: "13px", boxSizing: "border-box" }} />
-          {form.image_url && <img src={form.image_url} alt="preview" style={{ marginTop: "8px", width: "80px", height: "80px", borderRadius: "10px", objectFit: "cover" }} onError={e => e.target.style.display="none"} />}</div>
+          {form.image_url && <img src={form.image_url} alt="preview" style={{ marginTop: "8px", width: "120px", height: "120px", borderRadius: "10px", objectFit: "cover" }} onError={e => e.target.style.display="none"} />}</div>
           <div style={{ marginBottom: "14px" }}><p style={{ margin: "0 0 4px", fontSize: "10px", color: "#b06080", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>Category</p>
           <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1.5px solid #f0d0de", fontSize: "13px" }}>
             {["seasonal","roses","tropical","wildflower","sympathy","wedding","other"].map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
@@ -1111,7 +1178,7 @@ function PremadeBouquetsView() {
         bouquets.map(b => (
           <div key={b.id} style={{ background: "white", borderRadius: "14px", marginBottom: "10px", border: "1px solid #f0d0de", overflow: "hidden" }}>
             <div style={{ display: "flex", gap: "12px", padding: "14px 16px" }}>
-              {<img src={b.image_url || getFlowerFallback(b.name, b.description)} alt={b.name} style={{ width: "70px", height: "70px", borderRadius: "10px", objectFit: "cover", flexShrink: 0 }} onError={e => e.target.style.display="none"} />}
+              {<img key={b.image_url || "fallback"} src={b.image_url || getFlowerFallback(b.name, b.description)} alt={b.name} style={{ width: "70px", height: "70px", borderRadius: "10px", objectFit: "cover", flexShrink: 0 }} onError={e => e.target.style.display="none"} />}
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
                   <span style={{ fontSize: "16px", fontWeight: "600", color: "#3a1a2e", fontFamily: "Cormorant Garamond, serif" }}>{b.name}</span>
@@ -1122,6 +1189,7 @@ function PremadeBouquetsView() {
               </div>
             </div>
             <div style={{ padding: "0 16px 12px", display: "flex", gap: "8px" }}>
+              <button onClick={() => pickPhoto(f => replacePhoto(b, f))} disabled={uploadingId === b.id} style={{ background: "#fff0f6", border: "1px solid #f0d0de", color: "#8b3a5e", borderRadius: "8px", padding: "6px 12px", fontSize: "11px", cursor: "pointer", fontWeight: "600" }}>{uploadingId === b.id ? "Uploading..." : "📷 Photo"}</button>
               <button onClick={() => toggleActive(b.id, !b.active)} style={{ background: b.active ? "#ffebee" : "#e8f5e9", border: "none", color: b.active ? "#c62828" : "#2e7d32", borderRadius: "8px", padding: "6px 12px", fontSize: "11px", cursor: "pointer", fontWeight: "600" }}>{b.active ? "Hide" : "Show"}</button>
               <button onClick={() => { setEditingId(b.id); setAdding(false); setForm({ name: b.name, description: b.description||"", price: b.price, image_url: b.image_url||"", category: b.category||"seasonal", active: b.active }); }} style={{ background: "#fce4ec", border: "none", color: "#d4547a", borderRadius: "8px", padding: "6px 12px", fontSize: "11px", cursor: "pointer", fontWeight: "600" }}>✏️ Edit</button>
               <button onClick={() => deleteBouquet(b.id)} style={{ background: "#ffebee", border: "none", color: "#c62828", borderRadius: "8px", padding: "6px 12px", fontSize: "11px", cursor: "pointer", fontWeight: "600" }}>🗑</button>
