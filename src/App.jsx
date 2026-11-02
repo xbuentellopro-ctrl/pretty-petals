@@ -276,6 +276,7 @@ Check dashboard: prttypetals.com/admin`
       fontFamily: "Cormorant Garamond, serif", padding: "20px",
     }}>
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet" />
+      {showPortal && <CustomerPortal initialEmail={form.email} onClose={() => setShowPortal(false)} />}
       <div style={{
         background: "white", borderRadius: "24px", padding: "60px 40px",
         textAlign: "center", maxWidth: "480px", width: "100%",
@@ -287,6 +288,15 @@ Check dashboard: prttypetals.com/admin`
         </h2>
         <p style={{ color: "#b06080", fontSize: "17px", lineHeight: "1.7", margin: "0 0 24px" }}>
           Your order request has been received. <strong>Pretty Petals</strong> will review your details and reach out to you shortly to confirm everything and discuss your arrangement.
+        </p>
+        <button onClick={() => setShowPortal(true)} style={{
+          width: "100%", padding: "15px", borderRadius: "14px", border: "none", cursor: "pointer",
+          background: "linear-gradient(135deg, #d4547a, #c0396a)", color: "white",
+          fontSize: "17px", fontFamily: "Cormorant Garamond, serif", fontWeight: "600",
+          boxShadow: "0 4px 20px rgba(180,80,120,0.3)", marginBottom: "10px",
+        }}>📦 Track My Order</button>
+        <p style={{ color: "#b06080", fontSize: "13px", fontFamily: "Montserrat, sans-serif", lineHeight: "1.6", margin: "0 0 24px" }}>
+          Log in with just your email to follow your order, see updates, and set a reminder so you never forget a birthday or anniversary 🎂
         </p>
         <FloralDivider />
         <p style={{ color: "#c49aae", fontSize: "14px", marginTop: "20px", fontFamily: "Montserrat, sans-serif" }}>
@@ -318,15 +328,15 @@ Check dashboard: prttypetals.com/admin`
     }}>
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet" />
 
-      {showPortal && <CustomerPortal onClose={() => setShowPortal(false)} />}
+      {showPortal && <CustomerPortal initialEmail={form.email} onClose={() => setShowPortal(false)} />}
 
       {/* Top buttons */}
       <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", marginBottom: "4px" }}>
         <button onClick={() => setShowGuide(true)} style={{ background: "white", border: "1.5px solid #f0d0de", borderRadius: "20px", padding: "7px 14px", fontSize: "11px", color: "#8b3a5e", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600", boxShadow: "0 2px 8px rgba(180,80,120,0.1)" }}>
           💡 How To Order
         </button>
-        <button onClick={() => setShowPortal(true)} style={{ background: "white", border: "1.5px solid #f0d0de", borderRadius: "20px", padding: "7px 14px", fontSize: "11px", color: "#8b3a5e", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600", boxShadow: "0 2px 8px rgba(180,80,120,0.1)" }}>
-          🌸 My Account
+        <button onClick={() => setShowPortal(true)} style={{ background: "linear-gradient(135deg, #d4547a, #c0396a)", border: "1.5px solid #d4547a", borderRadius: "20px", padding: "7px 14px", fontSize: "11px", color: "white", boxShadow: "0 3px 12px rgba(212,84,122,0.3)", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600", boxShadow: "0 2px 8px rgba(180,80,120,0.1)" }}>
+          🌸 My Account · Track Order
         </button>
       </div>
 
@@ -550,6 +560,27 @@ Check dashboard: prttypetals.com/admin`
           ))}
         </div>
       </div>
+
+      {/* My Account promo card */}
+      {step === 1 && (
+        <div onClick={() => setShowPortal(true)} role="button" style={{
+          maxWidth: "560px", margin: "0 auto 22px", cursor: "pointer",
+          background: "linear-gradient(135deg, #fff0f6 0%, #fce4ec 100%)",
+          border: "1.5px solid #f4a7b9", borderRadius: "18px", padding: "14px 16px",
+          display: "flex", alignItems: "center", gap: "14px",
+          boxShadow: "0 4px 16px rgba(180,80,120,0.12)",
+        }}>
+          <div style={{ fontSize: "30px", flexShrink: 0 }}>📦</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: "0 0 3px", fontSize: "17px", color: "#8b3a5e", fontFamily: "Cormorant Garamond, serif", fontWeight: "600" }}>Already ordered with us?</p>
+            <p style={{ margin: 0, fontSize: "12px", color: "#b06080", fontFamily: "Montserrat, sans-serif", lineHeight: "1.5" }}>Track your order, see past bouquets &amp; get reminders before birthdays and anniversaries.</p>
+          </div>
+          <span style={{
+            flexShrink: 0, background: "linear-gradient(135deg, #d4547a, #c0396a)", color: "white",
+            borderRadius: "12px", padding: "9px 12px", fontSize: "12px", fontFamily: "Montserrat, sans-serif", fontWeight: "600", whiteSpace: "nowrap",
+          }}>My Account →</span>
+        </div>
+      )}
 
       {/* Progress */}
       <div style={{ maxWidth: "560px", margin: "0 auto 28px" }}>

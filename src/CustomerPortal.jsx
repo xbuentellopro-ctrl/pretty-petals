@@ -130,9 +130,9 @@ function ReviewForm({ order, customerName, onSubmitted }) {
   );
 }
 
-export default function CustomerPortal({ onClose }) {
+export default function CustomerPortal({ onClose, initialEmail }) {
   const [screen, setScreen] = useState("login");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail || "");
   const [code, setCode] = useState("");
   const [session, setSession] = useState(null);
   const [customer, setCustomer] = useState(null);
