@@ -1071,7 +1071,7 @@ function PremadeBouquetsView() {
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({ name: "", description: "", price: "", image_url: "", category: "seasonal", active: true });
+  const [form, setForm] = useState({ name: "", description: "", price: "", image_url: "", stem_count: "", category: "seasonal", active: true });
   const [uploadingId, setUploadingId] = useState(null); // "form" or a bouquet id
   const [photoMsg, setPhotoMsg] = useState("");
   const pickPhoto = (onFile) => {
@@ -1117,6 +1117,9 @@ function PremadeBouquetsView() {
     setSaving(true);
     try {
       const payload = { name: form.name, description: form.description, price: parseFloat(form.price) || 0, image_url: form.image_url, category: form.category, active: form.active };
+      // stem_count column is optional — only send it once it exists in the table
+      const hasStemCol = bouquets.length === 0 || bouquets.some(b => "stem_count" in b);
+      if (hasStemCol) payload.stem_count = parseInt(form.stem_count, 10) > 0 ? parseInt(form.stem_count, 10) : null;
       if (editingId) {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/premade_bouquets?id=eq.${editingId}`, { method: "PATCH", headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=representation" }, body: JSON.stringify(payload) });
         const data = await res.json();
@@ -1125,7 +1128,7 @@ function PremadeBouquetsView() {
         const nextOrder = bouquets.reduce((m, b) => Math.max(m, b.sort_order || 0), 0) + 1;
         await fetch(`${SUPABASE_URL}/rest/v1/premade_bouquets`, { method: "POST", headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" }, body: JSON.stringify({ ...payload, sort_order: nextOrder }) });
       }
-      setForm({ name: "", description: "", price: "", image_url: "", category: "seasonal", active: true });
+      setForm({ name: "", description: "", price: "", image_url: "", stem_count: "", category: "seasonal", active: true });
       setAdding(false); setEditingId(null);
       await fetchBouquets();
     } catch (e) { console.error("Save error:", e); }
@@ -1162,7 +1165,7 @@ function PremadeBouquetsView() {
     <div style={{ maxWidth: "700px", margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
         <h3 style={{ margin: 0, color: "#8b3a5e", fontFamily: "Cormorant Garamond, serif", fontSize: "22px", fontWeight: "400" }}>💐 Premade Arrangements</h3>
-        <button onClick={() => { setAdding(true); setEditingId(null); setForm({ name: "", description: "", price: "", image_url: "", category: "seasonal", active: true }); }} style={{ background: "linear-gradient(135deg, #d4547a, #c0396a)", border: "none", color: "white", borderRadius: "10px", padding: "9px 16px", fontSize: "12px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>+ Add</button>
+        <button onClick={() => { setAdding(true); setEditingId(null); setForm({ name: "", description: "", price: "", image_url: "", stem_count: "", category: "seasonal", active: true }); }} style={{ background: "linear-gradient(135deg, #d4547a, #c0396a)", border: "none", color: "white", borderRadius: "10px", padding: "9px 16px", fontSize: "12px", cursor: "pointer", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>+ Add</button>
       </div>
       {bouquets.length > 1 && <p style={{ margin: "-8px 0 12px", fontSize: "11px", color: "#c49aae", fontFamily: "Montserrat, sans-serif" }}>Use ▲ ▼ to set the order customers see. #1 shows first.</p>}
       {photoMsg && (
@@ -1171,10 +1174,10 @@ function PremadeBouquetsView() {
       {(adding || editingId) && (
         <div style={{ background: "white", borderRadius: "16px", padding: "20px", marginBottom: "16px", border: "1.5px solid #d4547a" }}>
           <h4 style={{ margin: "0 0 14px", color: "#8b3a5e", fontFamily: "Cormorant Garamond, serif", fontSize: "18px", fontWeight: "400" }}>{editingId ? "Edit" : "New"} Arrangement</h4>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
-            {[["name","Name","e.g. Spring Bliss"],["price","Price ($)","e.g. 85"]].map(([f,l,p]) => (
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "10px", marginBottom: "10px" }}>
+            {[["name","Name","e.g. Spring Bliss"],["price","Price ($)","e.g. 85"],["stem_count","Stems (qty)","e.g. 24"]].map(([f,l,p]) => (
               <div key={f}><p style={{ margin: "0 0 4px", fontSize: "10px", color: "#b06080", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>{l}</p>
-              <input type={f==="price"?"number":"text"} placeholder={p} value={form[f]} onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))} style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1.5px solid #f0d0de", fontSize: "13px", boxSizing: "border-box" }} /></div>
+              <input type={f==="price"||f==="stem_count"?"number":"text"} placeholder={p} value={form[f]} onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))} style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1.5px solid #f0d0de", fontSize: "13px", boxSizing: "border-box" }} /></div>
             ))}
           </div>
           <div style={{ marginBottom: "10px" }}><p style={{ margin: "0 0 4px", fontSize: "10px", color: "#b06080", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>Description</p>
@@ -1212,13 +1215,14 @@ function PremadeBouquetsView() {
                   <span style={{ fontSize: "18px", fontWeight: "600", color: "#d4547a", fontFamily: "Cormorant Garamond, serif" }}>${b.price}</span>
                 </div>
                 {b.description && <p style={{ margin: "0 0 6px", fontSize: "12px", color: "#b06080", fontFamily: "Montserrat, sans-serif" }}>{b.description}</p>}
+                {(() => { const n = parseInt(b.stem_count, 10) > 0 ? parseInt(b.stem_count, 10) : ((b.name || "").match(/\b(\d{1,3})\b/) || [])[1]; return n ? <span style={{ fontSize: "10px", background: "#fce4ec", color: "#8b3a5e", borderRadius: "10px", padding: "2px 8px", fontFamily: "Montserrat, sans-serif", fontWeight: "600", marginRight: "6px" }}>{n} stems{parseInt(b.stem_count, 10) > 0 ? "" : " (from name)"}</span> : null; })()}
                 <span style={{ fontSize: "10px", background: b.active ? "#e8f5e9" : "#ffebee", color: b.active ? "#2e7d32" : "#c62828", borderRadius: "10px", padding: "2px 8px", fontFamily: "Montserrat, sans-serif", fontWeight: "600" }}>{b.active ? "Active" : "Hidden"}</span>
               </div>
             </div>
             <div style={{ padding: "0 16px 12px", display: "flex", gap: "8px" }}>
               <button onClick={() => pickPhoto(f => replacePhoto(b, f))} disabled={uploadingId === b.id} style={{ background: "#fff0f6", border: "1px solid #f0d0de", color: "#8b3a5e", borderRadius: "8px", padding: "6px 12px", fontSize: "11px", cursor: "pointer", fontWeight: "600" }}>{uploadingId === b.id ? "Uploading..." : "📷 Photo"}</button>
               <button onClick={() => toggleActive(b.id, !b.active)} style={{ background: b.active ? "#ffebee" : "#e8f5e9", border: "none", color: b.active ? "#c62828" : "#2e7d32", borderRadius: "8px", padding: "6px 12px", fontSize: "11px", cursor: "pointer", fontWeight: "600" }}>{b.active ? "Hide" : "Show"}</button>
-              <button onClick={() => { setEditingId(b.id); setAdding(false); setForm({ name: b.name, description: b.description||"", price: b.price, image_url: b.image_url||"", category: b.category||"seasonal", active: b.active }); }} style={{ background: "#fce4ec", border: "none", color: "#d4547a", borderRadius: "8px", padding: "6px 12px", fontSize: "11px", cursor: "pointer", fontWeight: "600" }}>✏️ Edit</button>
+              <button onClick={() => { setEditingId(b.id); setAdding(false); setForm({ name: b.name, description: b.description||"", price: b.price, image_url: b.image_url||"", stem_count: b.stem_count ?? "", category: b.category||"seasonal", active: b.active }); }} style={{ background: "#fce4ec", border: "none", color: "#d4547a", borderRadius: "8px", padding: "6px 12px", fontSize: "11px", cursor: "pointer", fontWeight: "600" }}>✏️ Edit</button>
               <button onClick={() => deleteBouquet(b.id)} style={{ background: "#ffebee", border: "none", color: "#c62828", borderRadius: "8px", padding: "6px 12px", fontSize: "11px", cursor: "pointer", fontWeight: "600" }}>🗑</button>
             </div>
           </div>

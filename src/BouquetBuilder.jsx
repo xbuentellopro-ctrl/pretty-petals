@@ -457,6 +457,13 @@ function GreeneryGrid({ items, selected, onToggle, bunches, onBunchChange, prici
   );
 }
 
+// Stem count for a premade bouquet: admin's "stems" field, else a number in its name ("36 Red Roses")
+const stemsOf = (b) => {
+  const n = parseInt(b.stem_count, 10);
+  if (n > 0) return n;
+  const m = (b.name || "").match(/\b(\d{1,3})\b/);
+  return m ? parseInt(m[1], 10) : null;
+};
 const SUPABASE_URL = "https://kxvdgjnybtwsusjvzmfc.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4dmRnam55YnR3c3VzanZ6bWZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDIwODEsImV4cCI6MjA5NTcxODA4MX0.8u1AZ0DJpyQc9ZnG8Pg6OTwrA_e5EgEjmpDXKUKdbHk";
 
@@ -595,9 +602,11 @@ export default function BouquetBuilder({ onComplete, onBack }) {
   // Premade bouquets state — must be here before any early returns (React rules of hooks)
   const [premadeBouquets, setPremadeBouquets] = useState([]);
   const [premadeLoading, setPremadeLoading] = useState(false);
+  const [qtyFilter, setQtyFilter] = useState("all"); // "all" | number | "mixed"
 
   useEffect(() => {
     if (path === "premade") {
+      setQtyFilter("all");
       setPremadeLoading(true);
       fetch(`${SUPABASE_URL}/rest/v1/premade_bouquets?active=eq.true&order=sort_order.asc,created_at.asc`, {
         headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
@@ -663,8 +672,31 @@ export default function BouquetBuilder({ onComplete, onBack }) {
           <p>No premade bouquets yet. Check back soon!</p>
         </div>
       ) : (
+        <>
+        {(() => {
+          const counts = [...new Set(premadeBouquets.map(stemsOf).filter(Boolean))].sort((a, b) => a - b);
+          const hasMixed = premadeBouquets.some(b => !stemsOf(b));
+          if (counts.length === 0 || premadeBouquets.length < 2) return null;
+          const tabs = [["all", "All"], ...counts.map(c => [c, `${c} stems`]), ...(hasMixed ? [["mixed", "Mixed"]] : [])];
+          return (
+            <div style={{ display: "flex", gap: "8px", overflowX: "auto", padding: "4px 2px 6px", marginTop: "14px", WebkitOverflowScrolling: "touch" }}>
+              {tabs.map(([val, label]) => {
+                const on = qtyFilter === val;
+                return (
+                  <button key={val} onClick={() => setQtyFilter(val)} style={{
+                    flexShrink: 0, padding: "8px 16px", borderRadius: "20px", cursor: "pointer",
+                    border: on ? "1.5px solid #d4547a" : "1.5px solid #f0d0de",
+                    background: on ? "#d4547a" : "white",
+                    color: on ? "white" : "#8b3a5e",
+                    fontSize: "13px", fontFamily: "Montserrat, sans-serif", fontWeight: "600", whiteSpace: "nowrap"
+                  }}>{label}</button>
+                );
+              })}
+            </div>
+          );
+        })()}
         <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "16px" }}>
-          {premadeBouquets.map(bouquet => (
+          {premadeBouquets.filter(b => qtyFilter === "all" || (qtyFilter === "mixed" ? !stemsOf(b) : stemsOf(b) === qtyFilter)).map(bouquet => (
             <div key={bouquet.id} style={{
               borderRadius: "16px", overflow: "hidden",
               border: "1.5px solid #f0d0de",
@@ -716,6 +748,7 @@ export default function BouquetBuilder({ onComplete, onBack }) {
             </div>
           ))}
         </div>
+        </>
       )}
 
       <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
